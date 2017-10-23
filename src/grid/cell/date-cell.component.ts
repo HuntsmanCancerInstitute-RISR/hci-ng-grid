@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, Input, ViewChild, ViewEncapsulation } from "@angular/core";
+import {ChangeDetectorRef, Component, ElementRef, Input, isDevMode, ViewChild, ViewEncapsulation} from "@angular/core";
 import * as moment from "moment";
 
 import { CellTemplate } from "./cell-template.component";
@@ -12,11 +12,11 @@ import { CellTemplate } from "./cell-template.component";
   template: `
     <input #input
            [ngModel]="formattedValue"
-           (ngModelChange)="onModelChange($event);"
+           (ngModelChange)="onModelChange($event)"
            (click)="onClick($event)"
-           (keydown)="onInputKeyDown($event);"
-           placeholder="dateFormat"
-           pattern="pattern"
+           (keydown)="onInputKeyDown($event)"
+           [placeholder]="dateFormat"
+           [pattern]="pattern"
            class="hci-grid-cell-template hci-grid-cell-date"
            [ngClass]="{ 'focused': focused }" />
   `,
@@ -29,7 +29,7 @@ import { CellTemplate } from "./cell-template.component";
 })
 export class DateCell extends CellTemplate {
 
-  @Input() pattern: string = "[A-Z][a-z][a-z] [0-9]{1,2}, [0-9]{4}";
+  @Input() pattern: string = "[A-Z][a-z]{2}\s\d{1,2}[,]\s\d{4}";
   @Input() dateFormat: string = "MMM D, YYYY";
 
   @ViewChild("input") input: ElementRef;
@@ -40,8 +40,10 @@ export class DateCell extends CellTemplate {
     super();
   }
 
-  onModelChange(value: Object) {
-    console.log("DateCell.onModelChange " + this.formattedValue);
+  onModelChange(value: any) {
+    if (isDevMode()) {
+      console.debug("DateCell.onModelChange: %o", value);
+    }
 
     this.formattedValue = <string> value;
   }
@@ -59,19 +61,21 @@ export class DateCell extends CellTemplate {
   }
 
   onInputKeyDown(event: KeyboardEvent) {
-    console.log("DateCell.onInputKeyDown " + event.keyCode);
+    if (isDevMode()) {
+      console.debug("DateCell.onInputKeyDown: %i", event.keyCode);
+    }
 
     if (event.keyCode === 37 && this.input.nativeElement.selectionStart === 0) {
       event.stopPropagation();
-      this.input.nativeElement.blur();
+      //this.input.nativeElement.blur();
       this.keyEvent.emit(37);
     } else if (event.keyCode === 39 && this.input.nativeElement.selectionStart === this.input.nativeElement.value.length) {
       event.stopPropagation();
-      this.input.nativeElement.blur();
+      //this.input.nativeElement.blur();
       this.keyEvent.emit(39);
     } else if (event.keyCode === 9 || event.keyCode === 38 || event.keyCode === 40) {
       event.stopPropagation();
-      this.input.nativeElement.blur();
+      //this.input.nativeElement.blur();
       this.onKeyDown(event);
     } else if (event.keyCode === 13) {
       this.saveValue();
@@ -85,5 +89,9 @@ export class DateCell extends CellTemplate {
 
   setValue(value: Object) {
     this.formattedValue = moment((new Date(value))).format(this.dateFormat);
+
+    if (isDevMode()) {
+      console.debug("DateCell.setValue: %o", this.formattedValue);
+    }
   }
 }

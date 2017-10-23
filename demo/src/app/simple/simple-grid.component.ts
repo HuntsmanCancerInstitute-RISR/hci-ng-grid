@@ -15,7 +15,7 @@ import { DataGeneratorService } from "../services/data-generator.service";
           <column-def [field]="'lastName'"></column-def>
           <column-def [field]="'firstName'"></column-def>
           <column-def [field]="'dob'">
-              <hci-grid-cell-date #template [dateFormat]="'longDate'"></hci-grid-cell-date>
+              <hci-grid-cell-date #template [dateFormat]="'MMM D, YYYY'"></hci-grid-cell-date>
           </column-def>
           <column-def [field]="'pcg.nLabs'"></column-def>
           <column-def [field]="'pcg.nested.nLabPath'"></column-def>
@@ -33,7 +33,7 @@ import { DataGeneratorService } from "../services/data-generator.service";
         <column-def [field]="'lastName'"></column-def>
         <column-def [field]="'firstName'"></column-def>
         <column-def [field]="'dob'">
-          <hci-grid-cell-date #template [dateFormat]="'longDate'"></hci-grid-cell-date>
+          <hci-grid-cell-date #template [dateFormat]="'MMM D, YYYY'"></hci-grid-cell-date>
         </column-def>
         <column-def [field]="'pcg.nLabs'"></column-def>
         <column-def [field]="'pcg.nested.nLabPath'"></column-def>
@@ -60,7 +60,7 @@ import { DataGeneratorService } from "../services/data-generator.service";
             <column-def [field]="'lastName'" [name]="'Last Name'"></column-def>
             <column-def [field]="'firstName'" [name]="'First Name'"></column-def>
             <column-def [field]="'dob'" [name]="'Date of Birth'">
-                <hci-grid-cell-date #template [dateFormat]="'longDate'"></hci-grid-cell-date>
+                <hci-grid-cell-date #template [dateFormat]="'MMM D, YYYY'"></hci-grid-cell-date>
             </column-def>
             <column-def [field]="'address'" [name]="'Address 1'"></column-def>
             <column-def [field]="'citystatezip'" [name]="'Address 2'"></column-def>

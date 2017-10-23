@@ -96,7 +96,7 @@ export class CellComponent {
     });
 
     if (this.gridConfigService.gridConfiguration.cellSelect) {
-      this.gridEventService.getSelecetdRangeObservable().subscribe((range) => {
+      this.gridEventService.getSelectedRangeObservable().subscribe((range) => {
         if (range === null) {
           this.onFocusOut();
         } else if (range.contains(new Point(this.i, this.j, this.k))) {
@@ -133,10 +133,12 @@ export class CellComponent {
   }
 
   onFocuser() {
-    if (this.type === "LabelCell") {
-      this.componentRef.onFocus();
-    } else {
-      this.componentRef.onFocus();
+    if (this.gridConfigService.gridConfiguration.cellSelect) {
+      if (this.type === "LabelCell") {
+        this.componentRef.onFocus();
+      } else {
+        this.componentRef.onFocus();
+      }
     }
   }
 
@@ -146,16 +148,20 @@ export class CellComponent {
    * the input is focused.  In the case of a date, the datepicker popup is opened.
    */
   onFocus() {
-    if (this.type === "LabelCell") {
-      this.focuser.nativeElement.focus();
+    if (this.gridConfigService.gridConfiguration.cellSelect) {
+      if (this.type === "LabelCell") {
+        this.focuser.nativeElement.focus();
+      }
+      this.componentRef.onFocus();
+      this.changeDetectorRef.markForCheck();
     }
-    this.componentRef.onFocus();
-    this.changeDetectorRef.markForCheck();
   }
 
   onFocusOut() {
-    this.componentRef.onFocusOut();
-    this.changeDetectorRef.markForCheck();
+    if (this.gridConfigService.gridConfiguration.cellSelect) {
+      this.componentRef.onFocusOut();
+      this.changeDetectorRef.markForCheck();
+    }
   }
 
   /**
@@ -220,39 +226,50 @@ export class CellComponent {
         this.gridDataService.handleValueChange(this.i, this.j, this.data.key, this.k, value);
       });
     }
-    this.componentRef.keyEvent.subscribe((keyCode: number) => {
-      this.onKeyDown(keyCode);
-    });
-    this.componentRef.tabEvent.subscribe((value: boolean) => {
-      this.gridEventService.tabFrom(new Point(this.i, this.j, this.k), null);
-    });
+
+    if (this.gridConfigService.gridConfiguration.keyNavigation) {
+      this.componentRef.keyEvent.subscribe((keyCode: number) => {
+        this.onKeyDown(keyCode);
+      });
+      this.componentRef.tabEvent.subscribe((value: boolean) => {
+        this.gridEventService.tabFrom(new Point(this.i, this.j, this.k), null);
+      });
+    }
+
     this.componentRef.inputFocused.subscribe((eventMeta: EventMeta) => {
       this.gridEventService.setSelectedRange(new Point(this.i, this.j, this.k), eventMeta);
     });
-    this.componentRef.clickEvent.subscribe((eventMeta: EventMeta) => {
-      this.gridEventService.setSelectedRange(new Point(this.i, this.j, this.k), eventMeta);
-    });
+
+    if (this.gridConfigService.gridConfiguration.cellSelect) {
+      this.componentRef.clickEvent.subscribe((eventMeta: EventMeta) => {
+        this.gridEventService.setSelectedRange(new Point(this.i, this.j, this.k), eventMeta);
+      });
+    }
   }
 
   onKeyDown(keyCode: number) {
-    if (keyCode === 37) {
-      this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), -1, 0, null);
-    } else if (keyCode === 39) {
-      this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), 1, 0, null);
-    } else if (keyCode === 38) {
-      this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), 0, -1, null);
-    } else if (keyCode === 40) {
-      this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), 0, 1, null);
-    } else if (keyCode === 9) {
-      this.onFocusOut();
+    if (this.gridConfigService.gridConfiguration.keyNavigation) {
+      if (keyCode === 37) {
+        this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), -1, 0, null);
+      } else if (keyCode === 39) {
+        this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), 1, 0, null);
+      } else if (keyCode === 38) {
+        this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), 0, -1, null);
+      } else if (keyCode === 40) {
+        this.gridEventService.arrowFrom(new Point(this.i, this.j, this.k), 0, 1, null);
+      } else if (keyCode === 9) {
+        this.onFocusOut();
+      }
     }
   }
 
   onFocuserKeyDown(event: KeyboardEvent) {
-    if (this.type !== "LabelCell") {
-      this.focuser.nativeElement.blur();
+    if (this.gridConfigService.gridConfiguration.keyNavigation) {
+      if (this.type !== "LabelCell") {
+        this.focuser.nativeElement.blur();
+      }
+      this.onKeyDown(event.keyCode);
     }
-    this.onKeyDown(event.keyCode);
   }
 
 }

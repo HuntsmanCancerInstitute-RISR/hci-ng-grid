@@ -34,7 +34,12 @@ import { ColumnDefComponent } from "./column/column-def.component";
  */
 @Component({
   selector: "hci-grid",
-  providers: [ GridDataService, GridEventService, GridConfigService, GridMessageService ],
+  providers: [
+    GridDataService,
+    GridEventService,
+    GridConfigService,
+    GridMessageService
+  ],
   template: `
     <div (keydown)="onKeyDown($event);">
       <div [style.display]="busy ? 'inherit' : 'none'" class="hci-grid-busy">
@@ -175,6 +180,7 @@ export class GridComponent implements OnChanges {
   @Input() externalPaging: boolean = false;
   @Input() externalSorting: boolean = false;
   @Input() fixedColumns: string[];
+  @Input() keyNavigation: boolean = false;
   @Input() gridConfiguration: GridConfiguration;
   @Input() groupBy: string[];
   @Input() level: string = null;
@@ -336,6 +342,9 @@ export class GridComponent implements OnChanges {
     }
     if (this.cellSelect) {
       this.gridConfigService.gridConfiguration.cellSelect = this.cellSelect;
+    }
+    if (this.keyNavigation) {
+      this.gridConfigService.gridConfiguration.keyNavigation = this.keyNavigation;
     }
     if (this.fixedColumns) {
       this.gridConfigService.gridConfiguration.fixedColumns = this.fixedColumns;

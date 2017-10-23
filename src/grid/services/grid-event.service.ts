@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import {Injectable, isDevMode} from "@angular/core";
 import { Subject, Observable } from "rxjs/Rx";
 
 import { GridConfigService } from "./grid-config.service";
@@ -73,7 +73,11 @@ export class GridEventService {
    * @param dy
    */
   arrowFrom(location: Point, dx: number, dy: number, eventMeta: EventMeta) {
-    if (!this.gridConfigService.gridConfiguration.cellSelect) {
+    if (isDevMode()) {
+      console.debug("GridEventService.arrowFrom %i %i %o %o", dx, dy, this.gridConfigService.gridConfiguration.cellSelect, this.gridConfigService.gridConfiguration.keyNavigation);
+    }
+
+    if (!this.gridConfigService.gridConfiguration.cellSelect || !this.gridConfigService.gridConfiguration.keyNavigation) {
       return;
     }
     this._currentLocation = location;
@@ -139,6 +143,9 @@ export class GridEventService {
   }
 
   tabFrom(location: Point, eventMeta: EventMeta) {
+    if (!this.gridConfigService.gridConfiguration.cellSelect || !this.gridConfigService.gridConfiguration.keyNavigation) {
+      return;
+    }
     this.arrowFrom(location, 1, 0, eventMeta);
   }
 
@@ -146,7 +153,7 @@ export class GridEventService {
     return this.selectedLocationObservable;
   }
 
-  getSelecetdRangeObservable(): Observable<Range> {
+  getSelectedRangeObservable(): Observable<Range> {
     return this.selectedRangeObservable;
   }
 }

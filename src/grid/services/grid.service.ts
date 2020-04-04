@@ -1469,6 +1469,7 @@ export class GridService {
    * @param {number} mode -2 for first, 2 for last, -1 for previous, 1 for next.
    */
   public setPage(mode: number): void {
+    this.clearEditComponent(); // clear edit component when user changes page.
     if (this.selectedRowGroup) {
       let page: number = this.selectedRowGroup.paging.getPage();
       if (mode === -2) {
@@ -1906,5 +1907,15 @@ export class GridService {
    */
   getBusySubject(): Subject<boolean> {
     return this.busySubject;
+  }
+
+  /**
+   * Remove the cell(s) inserted for editing purposes from the DOM.
+   */
+  public clearEditComponent(): void {
+    let els: NodeListOf<HTMLElement> = this.gridElement.querySelector("#right-container").querySelectorAll(".ng-star-inserted");
+    for (let el of els) {
+      el.parentElement.removeChild(el);
+    }
   }
 }

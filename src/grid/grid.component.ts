@@ -1610,13 +1610,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
     this.gridService.clearDirtyCell(i, j);
   }
 
-  public clearEditComponent(): void {
-    let els: HTMLElement[] = this.gridContainer.nativeElement.querySelector("#grid-content").querySelectorAll(".ng-star-inserted");
-    for (let el of els) {
-      el.parentElement.removeChild(el);
-    }
-  }
-
   /**
    * Updates the configuration object based on the @Inputs.  This allows the user to configure the grid based on a
    * combination of config and @Input settings.

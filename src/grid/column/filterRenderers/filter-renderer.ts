@@ -1,11 +1,11 @@
-import {ChangeDetectorRef, ElementRef, EventEmitter, Input, Output} from "@angular/core";
-
+import {ChangeDetectorRef, ElementRef, EventEmitter, Input, Output, OnDestroy} from "@angular/core";
+import {untilDestroyed} from "ngx-take-until-destroy";
 import {HciFilterDto} from "hci-ng-grid-dto";
 
 import {Column} from "../column";
 import {GridService} from "../../services/grid.service";
 
-export class FilterRenderer {
+export class FilterRenderer implements OnDestroy {
 
   @Input() column: Column;
   @Output() close: EventEmitter<boolean> = new EventEmitter<boolean>();
@@ -27,13 +27,15 @@ export class FilterRenderer {
   ngOnInit() {
     this.filtersSubscribe();
   }
+  
+  ngOnDestroy() {}
 
   ngAfterViewInit() {
     this.changeDetectorRef.detectChanges();
   }
 
   filtersSubscribe() {
-    this.gridService.getFilterMapSubject().subscribe((filterMap: Map<string, HciFilterDto[]>) => {
+    this.gridService.getFilterMapSubject().pipe(untilDestroyed(this)).subscribe((filterMap: Map<string, HciFilterDto[]>) => {
       if (this.column) {
         if (filterMap.has(this.column.field)) {
           this.filters = filterMap.get(this.column.field);

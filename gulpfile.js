@@ -56,3 +56,20 @@ gulp.task("install-demo", function(done) {
     spawn.sync("npm", ["install"], {stdio: "inherit", cwd: "./demo"});
     done();
 });
+
+
+/**
+ * 
+ * Push grid to any external destination.  For example, "npm run push-dest -- --dest ../core/core-ng".
+ * This is so you can modify the grid and push it to an application without publishing anything.
+ */
+gulp.task("push-dest", function(done) {
+	let destPath = argv.dest;
+	
+	logger.color("yellow").log(destPath + "/node_modules/hci-ng-grid");
+	
+    gulp.src(["**/*"], {base: "./dist", cwd: "./dist"})
+    	.pipe(gulp.dest(destPath + "/node_modules/hci-ng-grid/"));
+	
+	done();
+});

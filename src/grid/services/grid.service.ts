@@ -1,8 +1,10 @@
-import {Injectable, isDevMode} from "@angular/core";
+import {Injectable, isDevMode, OnDestroy} from "@angular/core";
 import {HttpClient} from "@angular/common/http";
 
 import {BehaviorSubject, Observable, of, Subject, Subscription} from "rxjs";
 import {finalize} from "rxjs/operators";
+import {untilDestroyed} from "ngx-take-until-destroy";
+
 
 import {HciDataDto, HciFilterDto, HciGridDto, HciGroupingDto, HciPagingDto, HciSortDto} from "hci-ng-grid-dto";
 
@@ -21,7 +23,7 @@ import {RowGroupView} from "../cell/viewRenderers/row-group-view";
  * The service for handling configuration and data binding/parsing.
  */
 @Injectable()
-export class GridService {
+export class GridService implements OnDestroy {
 
   static defaultConfig: any = {
     theme: "spreadsheet",
@@ -131,6 +133,8 @@ export class GridService {
   constructor(private gridGlobalService: GridGlobalService, private http: HttpClient) {
     this.gridGlobalService.register(this);
   }
+  
+  ngOnDestroy() {}
 
   /**
    * Expects an object with the above configuration options as fields.  This is built on top of the default values,
@@ -272,7 +276,6 @@ export class GridService {
     this.setNVisibleRows();
 
     this.configSet = true;
-    this.setAutoPageSize();
 
     // Notify listeners if anything related to column configuration changed.
     if (columnsChanged) {
@@ -1294,17 +1297,7 @@ export class GridService {
     this.originalData = originalData;
     this.originalDataCounts = originalDataCounts;
 
-    this.setAutoPageSize();
-
     this.initData();
-  }
-
-  public setAutoPageSize(): void {
-    if (this.originalData && this.configSet) {
-      /*if (this.paging.getPageSize() === -1 && this.originalData.length > 50 && this.height === undefined) {
-        this.paging.setPageSize(10);
-      }*/
-    }
   }
 
   public doExternalDataCall(externalInfo?: HciGridDto): void {
@@ -1326,7 +1319,7 @@ export class GridService {
       externalInfo.getGrouping().setGroupQuery(true);
     }
 
-    this.onExternalDataCall(externalInfo).subscribe((externalData: HciDataDto) => {
+    this.onExternalDataCall(externalInfo).pipe(untilDestroyed(this)).subscribe((externalData: HciDataDto) => {
       if (!externalData.gridDto) {
         this.paging.setNumPages(1);
       } else {
@@ -1359,7 +1352,7 @@ export class GridService {
       newGridDto.getFilters().push(new HciFilterDto(groupField, "string", this.selectedRowGroup[groupField], undefined, "E", true));
     }
 
-    this.onExternalDataCall(newGridDto).subscribe((externalData: HciDataDto) => {
+    this.onExternalDataCall(newGridDto).pipe(untilDestroyed(this)).subscribe((externalData: HciDataDto) => {
       if (!externalData.gridDto) {
         this.selectedRowGroup.paging.setNumPages(1);
       } else {

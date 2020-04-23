@@ -1,6 +1,7 @@
-import {Injectable, isDevMode} from "@angular/core";
+import {Injectable, isDevMode, OnDestroy} from "@angular/core";
 
 import {Subject} from "rxjs";
+import {untilDestroyed} from "ngx-take-until-destroy";
 
 import {GridService} from "./grid.service";
 import {Point} from "../utils/point";
@@ -18,7 +19,7 @@ export const ARROW = 2;
  * are selected.  It also then emits the new selected cell or range of cells so the grid can update rendering.
  */
 @Injectable()
-export class GridEventService {
+export class GridEventService implements OnDestroy {
 
   private nColumns: number = 0;
   private selectedLocation: Point = new Point(-1, -1);
@@ -40,10 +41,12 @@ export class GridEventService {
       console.debug("hci-grid: " + this.gridService.id + ": GridEventService constructor");
     }
 
-    this.gridService.getNewRowSubject().subscribe((newRow: Row) => {
+    this.gridService.getNewRowSubject().pipe(untilDestroyed(this)).subscribe((newRow: Row) => {
       this.newRow = newRow;
     });
   }
+  
+  ngOnDestroy() {}
 
   getCurrentRange(): Range {
     return this.currentRange;

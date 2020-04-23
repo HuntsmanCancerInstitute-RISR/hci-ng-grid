@@ -4,11 +4,12 @@
 import {
   AfterViewInit, ComponentFactoryResolver, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input,
   isDevMode, OnChanges, Output, Renderer2, SimpleChange, ViewChild, ViewContainerRef, Injector, TemplateRef,
-  ApplicationRef, ComponentRef, EmbeddedViewRef
+  ApplicationRef, ComponentRef, EmbeddedViewRef, OnDestroy
 } from "@angular/core";
 
 import {interval, Observable, Subject, Subscription} from "rxjs";
 import {take, takeWhile} from "rxjs/operators";
+import {untilDestroyed} from "ngx-take-until-destroy";
 
 import {HciDataDto, HciFilterDto, HciGridDto, HciPagingDto, HciSortDto} from "hci-ng-grid-dto";
 
@@ -488,7 +489,7 @@ const SCROLL: number = 1;
     }
   `]
 })
-export class GridComponent implements OnChanges, AfterViewInit {
+export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
   @ViewChild("mainContentHeaderContainer", { read: ViewContainerRef, static: true }) headerContainer: ViewContainerRef;
   @ViewChild("mainContentPopupContainer", { read: ViewContainerRef, static: true }) popupContainer: ViewContainerRef;
@@ -526,6 +527,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
   @Input() externalFiltering: boolean;
   @Input() externalSorting: boolean;
   @Input() externalPaging: boolean;
+  @Input() autoCalcPageSize: boolean = false;
   @Input("pageSize") inputPageSize: number;
   @Input("pageSizes") inputPageSizes: number[];
   @Input("nVisibleRows") inputNVisibleRows: number = -1;
@@ -633,7 +635,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
       this.renderer.setStyle(this.el.nativeElement, "height", this.height + "px");
     }
 
-    this.gridMessageService.messageObservable.subscribe((message: string) => {
+    this.gridMessageService.messageObservable.pipe(untilDestroyed(this)).subscribe((message: string) => {
       if (this.logWarnings) {
         console.warn(message);
       }
@@ -649,7 +651,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
   ngAfterViewInit() {
     this.findBaseRowCell();
 
-    this.gridService.getConfigSubject().subscribe((config: any) => {
+    this.gridService.getConfigSubject().pipe(untilDestroyed(this)).subscribe((config: any) => {
       if (isDevMode()) {
         console.info("hci-grid: " + this.id + ": getConfigSubect().subscribe");
       }
@@ -678,7 +680,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     /* The grid component handles the footer which includes paging.  Listen to changes in the pageInfo and update. */
-    this.gridService.pagingSubject.subscribe((paging: HciPagingDto) => {
+    this.gridService.pagingSubject.pipe(untilDestroyed(this)).subscribe((paging: HciPagingDto) => {
       if (isDevMode()) {
         console.info("hci-grid: " + this.id + ": this.gridService.pageInfoObserved: " + paging.toString());
       }
@@ -686,7 +688,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     /* When the bound data updates, pass it off to the grid service for processing. */
-    this.boundDataSubject.subscribe((boundData: Object[]) => {
+    this.boundDataSubject.pipe(untilDestroyed(this)).subscribe((boundData: Object[]) => {
       if (isDevMode()) {
         console.info("hci-grid: " + this.id + ": boundDataSubject.subscribe: " + boundData.length);
       }
@@ -697,7 +699,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     /* Subscribe to loading change.  Update the loading boolean. */
-    this.loadingSubject.subscribe((loading: boolean) => {
+    this.loadingSubject.pipe(untilDestroyed(this)).subscribe((loading: boolean) => {
       if (isDevMode()) {
         console.debug("hci-grid: " + this.id + ": loadingSubject.subscribe: " + loading);
       }
@@ -712,7 +714,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     /* Subscribe to busy change.  Update the busy boolean. */
-    this.gridService.getBusySubject().subscribe((busy: boolean) => {
+    this.gridService.getBusySubject().pipe(untilDestroyed(this)).subscribe((busy: boolean) => {
       if (isDevMode()) {
         console.debug("hci-grid: " + this.id + ": busySubject.subscribe: " + busy);
       }
@@ -727,22 +729,14 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
     });
 
-    /* Listen to changes in Sort/Filter/Page.
-     If there is an onExternalDataCall defined, send that info to that provided function. */
-    /*if (this.onExternalDataCall) {
-      this.gridService.externalInfoObserved.subscribe((externalInfo: HciGridDto) => {
-        this.updateGridContainerHeight();
-        this.gridService.doExternalDataCall(externalInfo);
-      });
-    }*/
 
-    this.gridService.getSelectedRowsSubject().subscribe((selectedRows: any[]) => {
+    this.gridService.getSelectedRowsSubject().pipe(untilDestroyed(this)).subscribe((selectedRows: any[]) => {
       this.updateSelectedRows(selectedRows);
 
       this.selectedRows.emit(selectedRows);
     });
 
-    this.gridService.getEventSubject().subscribe((event: any) => {
+    this.gridService.getEventSubject().pipe(untilDestroyed(this)).subscribe((event: any) => {
       if (this.initialized) {
         if (event && event.type === "filter" && event.status === "complete") {
           this.outputDataFiltered.emit(event);
@@ -752,11 +746,11 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
     });
 
-    this.gridService.getSortsSubject().subscribe((event: HciSortDto[]) => {
+    this.gridService.getSortsSubject().pipe(untilDestroyed(this)).subscribe((event: HciSortDto[]) => {
       this.outputSortEvent.emit(event);
     });
 
-    this.gridService.getFilterEventSubject().subscribe((filters: HciFilterDto[]) => {
+    this.gridService.getFilterEventSubject().pipe(untilDestroyed(this)).subscribe((filters: HciFilterDto[]) => {
       if (this.initialized) {
         this.outputFilterEvent.emit(filters);
       }
@@ -767,7 +761,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     this.gridEventService.setSelectedLocation(undefined, undefined);
 
     /* Listen to changes in the data.  Updated data when the data service indicates a change. */
-    this.gridService.getViewDataSubject().subscribe((data: Row[]) => {
+    this.gridService.getViewDataSubject().pipe(untilDestroyed(this)).subscribe((data: Row[]) => {
       if (isDevMode()) {
         console.info("hci-grid: " + this.id + ": viewDataSubject.subscribe: " + data.length);
       }
@@ -812,7 +806,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     /* Update the pageInfo from the proper one in the gridService. */
     this.paging = this.gridService.paging;
 
-    this.selectedLocationSubscription = this.gridEventService.getSelectedLocationSubject().subscribe((p: Point) => {
+    this.selectedLocationSubscription = this.gridEventService.getSelectedLocationSubject().pipe(untilDestroyed(this)).subscribe((p: Point) => {
       if (isDevMode()) {
         console.info("hci-grid: " + this.id + ": GridComponent.selectedLocationSubscription");
       }
@@ -839,19 +833,19 @@ export class GridComponent implements OnChanges, AfterViewInit {
       this.focuser1.nativeElement.focus();
     });
 
-    this.gridEventService.getSelectedRange().subscribe((range: Range) => {
+    this.gridEventService.getSelectedRange().pipe(untilDestroyed(this)).subscribe((range: Range) => {
       this.updateSelectedCells(range);
     });
 
-    this.gridService.getValueSubject().subscribe((location: Point) => {
+    this.gridService.getValueSubject().pipe(untilDestroyed(this)).subscribe((location: Point) => {
       this.renderCellsAndData();
     });
 
-    this.gridService.getDataChangeSubject().subscribe((dataChange: any) => {
+    this.gridService.getDataChangeSubject().pipe(untilDestroyed(this)).subscribe((dataChange: any) => {
       this.onCellSave.emit(dataChange);
     });
 
-    this.gridService.getDirtyCellsSubject().subscribe((dirtyCells: Point[]) => {
+    this.gridService.getDirtyCellsSubject().pipe(untilDestroyed(this)).subscribe((dirtyCells: Point[]) => {
       this.renderDirtyCells(dirtyCells);
     });
 
@@ -865,11 +859,11 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
     });
 
-    this.gridService.getNewRowMessageSubject().subscribe((newRowMessage: string) => {
+    this.gridService.getNewRowMessageSubject().pipe(untilDestroyed(this)).subscribe((newRowMessage: string) => {
       this.newRowMessage = newRowMessage;
     });
 
-    this.gridService.getNewRowSubject().subscribe((newRow: Row) => {
+    this.gridService.getNewRowSubject().pipe(untilDestroyed(this)).subscribe((newRow: Row) => {
       this.newRowMessage = undefined;
 
       let gridContent: HTMLElement = this.gridContainer.nativeElement.querySelector("#grid-content");
@@ -1695,6 +1689,25 @@ export class GridComponent implements OnChanges, AfterViewInit {
     try {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
+    
+    
+    if (this.autoCalcPageSize) {
+      if (! this.height || this.height <= 0) {
+        //Get the parent component's inner height
+        let parent = this.gridContainer.nativeElement.parentNode;
+        var computed = getComputedStyle(parent)
+        var padding = parseInt(computed.paddingTop) + parseInt(computed.paddingBottom);
+        var parentInnerHeight = parent.clientHeight - padding;
+        this.height = parentInnerHeight;
+      }
+      
+      var availableHeight = this.height - headerHeight - footerHeight;
+      var pageSize = Math.floor(availableHeight / this.rowHeight);
+      
+      if (this.getGridService().paging.pageSize !== pageSize) {
+        this.gridService.setPageSize(pageSize);
+      }
+    }
 
     contentViewHeight = 0;
     if (this.height > 0) {

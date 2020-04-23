@@ -14,7 +14,7 @@
   "repository": "git+https://github.com/HuntsmanCancerInstitute-RISR/hci-ng-grid.git",
   "homepage": "https://huntsmancancerinstitute-risr.github.io/hci-ng-grid-demo",
   "scripts": {
-    "build": "npm run clean && npm run ngc && npm run doc && npm run karma start && npm run copyfiles package.json dist/ && npm run copyfiles -- src/grid/themes/*.css dist/ && npm run push",
+    "build": "npm run clean && npm run ngc && npm run doc &&  npm run copyfiles package.json dist/ && npm run copyfiles -- src/grid/themes/*.css dist/ && npm run push",
     "build-demo": "gulp build-demo",
     "clean": "npm run rimraf index.js index.d.ts index.ngsummary.json index.metadata.json index.js.map src/**/*.js src/**/*.ngfactory.ts src/**/*.d.ts src/**/*.js.map src/**/*.ngsummary.json src/**/*.metadata.json code-coverage dist",
     "compodoc": "compodoc",
@@ -28,6 +28,7 @@
     "npmPack": "npm run build && npm run copyToDist && cd dist && npm pack",
     "npmPublish": "npm run build && npm run copyToDist && cd dist && npm publish --access public",
     "push": "cd dist && npm run copyfiles -- \"index.+(js|d.ts|js.map|metadata.json)\" ../demo/node_modules/hci-ng-grid && npm run copyfiles -- -e \"*.+(ngfactory|ngsummary).*\" \"src/**/*.+(js|d.ts|js.map|metadata.json|css)\" ../demo/node_modules/hci-ng-grid && cd ..",
+    "push-dest": "gulp push-dest",
     "rimraf": "rimraf",
     "run-demo": "gulp run-demo",
     "run-demo-prod": "gulp run-demo-prod"
@@ -98,6 +99,7 @@
     "lodash": ">=4.17.11",
     "macaddress": ">=0.2.9",
     "minimist": "^1.2.0",
+    "ngx-take-until-destroy": "5.4.x",
     "node-color-log": "2.1.x",
     "reflect-metadata": "^0.1.3",
     "rimraf": "^2.6.1",

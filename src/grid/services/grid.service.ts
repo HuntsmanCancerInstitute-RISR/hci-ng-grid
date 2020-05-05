@@ -143,9 +143,7 @@ export class GridService implements OnDestroy {
    * @param config
    */
   public updateConfig(config: any, forceColumnsChanged?: boolean): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": GridService.updateConfig");
-    }
+
     if (!this.configured) {
       this.config = Object.assign({}, GridService.defaultConfig, this.gridGlobalService.getGlobalConfig(), config);
       this.configured = true;
@@ -304,9 +302,9 @@ export class GridService implements OnDestroy {
    * nVisibleRows will be set to the page size.
    */
   public setNVisibleRows(): void {
-    if (this.config.nVisibleRows === -1 && this.paging.pageSize > 0) {
+    if ((!this.config.nVisibleRows || this.config.nVisibleRows === -1) && this.paging.pageSize > 0) {
       this.nVisibleRows = this.paging.pageSize;
-    } else if (this.config.nVisibleRows === -1 && this.paging.pageSize === -1) {
+    } else if ((! this.config.nVisibleRows || this.config.nVisibleRows === -1) && this.paging.pageSize === -1) {
       this.nVisibleRows = -1;
     }
   }
@@ -324,9 +322,6 @@ export class GridService implements OnDestroy {
         n = i;
         break;
       }
-    }
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": GridService.updateSortOrder: " + field + ", " + position + ", " + n);
     }
 
     if (n === -1) {
@@ -405,10 +400,6 @@ export class GridService implements OnDestroy {
   }
 
   public initializeColumns(): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": GridService.initializeColumns()");
-    }
-
     this.initializeColumnsKeysAndChoices();
   }
 
@@ -468,9 +459,6 @@ export class GridService implements OnDestroy {
    * calculate things like visible columns and group by, then re-sort based on the rendering order.
    */
   public initializeColumnsGroupSortMap(): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": GridService.initializeColumnsGroupSortMap");
-    }
 
     this.columns.sort((a: Column, b: Column) => {
       if (a.sortOrder && b.sortOrder) {
@@ -593,21 +581,10 @@ export class GridService implements OnDestroy {
       }
     }
 
-    if (isDevMode()) {
-      for (var j = 0; j < this.columns.length; j++) {
-        console.debug("field: " + this.columns[j].field + ", sortOrder: " + this.columns[j].sortOrder + ", renderOrder: " + this.columns[j].renderOrder
-            + ", visible: " + this.columns[j].visible + ", selectable: " + this.columns[j].selectable + ", isFixed: " + this.columns[j].isFixed);
-      }
-    }
-
     this.initializeColumnsFinalize();
   }
 
   initializeColumnsFinalize() {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": GridService.initializeColumnsFinalize()");
-    }
-
     this.nFixedColumns = 0;
     this.nNonFixedColumns = 0;
     for (var j = 0; j < this.columns.length; j++) {
@@ -731,10 +708,6 @@ export class GridService implements OnDestroy {
   }
 
   public reorderColumn(oldJ: number, newJ: number): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": reorderColumn: " + oldJ + " to " + newJ);
-    }
-
     let visibleColumns: Column[] = this.columnMap.get("VISIBLE");
 
     if (newJ < oldJ) {
@@ -788,10 +761,6 @@ export class GridService implements OnDestroy {
     }
 
     this.getRow(i).get(j).value = value;
-
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": negateSelectedRow: " + i + " " + j + " " + value);
-    }
 
     if (value) {
       if (!multiSelect) {
@@ -888,9 +857,6 @@ export class GridService implements OnDestroy {
       this.filterMap.forEach((filters: HciFilterDto[]) => {
         this.filters = this.filters.concat(filters);
       });
-      if (isDevMode()) {
-        console.debug("GridService.filter: externalFiltering: n: " + this.filters.length);
-      }
 
       this.paging.setPage(0);
 
@@ -915,9 +881,6 @@ export class GridService implements OnDestroy {
   }
 
   public filterPreparedData(): void {
-    if (isDevMode()) {
-      console.debug("filterPreparedData");
-    }
 
     let filteredData: Row[] = [];
 
@@ -962,9 +925,6 @@ export class GridService implements OnDestroy {
 
   public getField(row: Object, field: String): Object {
     if (!field) {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": getField: field is undefined.");
-      }
       return null;
     }
 
@@ -1018,9 +978,6 @@ export class GridService implements OnDestroy {
   }
 
   public handleValueChange(i: number, j: number, key: number, newValue: any, oldValue: any): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": handleValueChange: " + i + " " + j + " " + newValue + " " + oldValue);
-    }
 
     if (i === -1) {
       this.setInputDataValue(i, this.columns[j].field, newValue);
@@ -1054,14 +1011,7 @@ export class GridService implements OnDestroy {
       return;
     }
 
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": initDataWithOptions: " + doPrepare + ", " + doGroup + ", " + doFilter + ", " + doSort + ", " + doPage);
-    }
-
     if (!this.isColumnMapDefined()) {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": initDataWithOptions: Columns not yet set, skipping initData.");
-      }
       return;
     }
 
@@ -1147,13 +1097,7 @@ export class GridService implements OnDestroy {
 
   public prepareData(): void {
     if (!this.columns) {
-      if (isDevMode()) {
-        console.info("prepareData: No Columns, returning.");
-      }
       return;
-    }
-    if (isDevMode()) {
-      console.info("prepareData: nData: " + this.originalData.length + ", nCols: " + this.columns.length);
     }
     this.preparedData = [];
 
@@ -1200,9 +1144,6 @@ export class GridService implements OnDestroy {
   }
 
   public expandCollapseRowGroup(groupKey: string): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": expandCollapseRowGroup: " + this.externalGrouping + " " + this.paging.getPageSize());
-    }
 
     let rowGroup: RowGroup = this.rowGroups.get(groupKey);
     rowGroup.expanded = !rowGroup.expanded;
@@ -1301,10 +1242,6 @@ export class GridService implements OnDestroy {
   }
 
   public doExternalDataCall(externalInfo?: HciGridDto): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": doExternalDataCall");
-    }
-
     if (!this.onExternalDataCall) {
       return;
     }
@@ -1333,9 +1270,6 @@ export class GridService implements OnDestroy {
   }
 
   public doExternalDataCallGroupBy(gridDto?: HciGridDto): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": doExternalDataCallGroupBy");
-    }
 
     this.busySubject.next(true);
 
@@ -1453,10 +1387,6 @@ export class GridService implements OnDestroy {
   }
 
   public setPageSize(pageSize: number) {
-    if (isDevMode()) {
-      console.debug("setPageSize: " + pageSize);
-    }
-
     this.paging.setPageSize(pageSize);
     this.paging.setPage(0);
 
@@ -1748,11 +1678,6 @@ export class GridService implements OnDestroy {
         }
         this.newRow.data[fields[0]] = obj;
       }
-    }
-
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": createNewRow:");
-      console.debug(this.newRow);
     }
 
     this.newRowSubject.next(this.newRow);

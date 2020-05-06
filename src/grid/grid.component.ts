@@ -233,6 +233,7 @@ const SCROLL: number = 1;
                     [ngModel]="paging.pageSize"
                     (ngModelChange)="doPageSize($event)"
                     [disabled]="busy">
+              <option *ngIf="autoCalcPageSize" [ngValue]="calculatedPageSize">AUTO</option>
               <option *ngFor="let o of config.pageSizes" [ngValue]="o">{{o}}</option>
             </select>
             <span (click)="doPageNext()" class="pl-3 pr-3"><span class="fas fa-forward"></span></span>
@@ -569,8 +570,8 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   gridData: Row[] = [];
   paging: HciPagingDto = new HciPagingDto();
   initialized: boolean = false;
-  calculatingSize: boolean = false;
   gridContainerHeight: number = 0;
+  calculatedPageSize: number = 3;
 
   /* Timers and data to determine the difference between single and double clicks. */
   clickTimer: any;
@@ -1006,6 +1007,8 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   public doPageSize(value: number): void {
+    console.log("DO PAGE SIZE");
+    console.log(value);
     this.gridService.setPageSize(value);
   }
 
@@ -1582,6 +1585,11 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     if (this.newRowPostCallFinally) {
       this.inputConfig.newRowPostCallFinally = this.newRowPostCallFinally;
     }
+    
+    //If auto, set page size to initial size. Defaults to 3, then is updated when calculated.
+    if (this.autoCalcPageSize) {
+      this.inputConfig.pageSize = this.calculatedPageSize;
+    }
 
     if (this.inputConfig.id === undefined && this.id === undefined) {
       this.id = this.gridService.id;
@@ -1624,12 +1632,19 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
     
-   
-    if (this.autoCalcPageSize) {
+    console.log("UPDATE SIZE");
+    console.log(this.paging.pageSize);
+    console.log(this.calculatedPageSize);
+    
+    //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+    if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
       var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight;
       pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
       nVisibleRows = pageSize;
     }
+    
+    console.log("VISIBLE ROWS");
+    console.log(nVisibleRows);
     
     contentViewHeight = 0;
     if (this.height > 0) {
@@ -1785,7 +1800,8 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       if (!this.height) {
 
         //If auto calc, we may need less rows to accomodate scrollbar
-        if (this.autoCalcPageSize) {
+        //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+        if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
           var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight - 17;
           pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
           nVisibleRows = pageSize;
@@ -1807,13 +1823,18 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     }
     
     //This will trigger an update for the data, but should not trigger a re-calculation of sizing
-    if (this.autoCalcPageSize) {
+    //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+    if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+      console.log("UPDATE SIZES");
+      console.log(pageSize);
+      //Updated to new calculated page size
+      this.calculatedPageSize = pageSize;
+      
       if (! this.getGridService().paging.pageSize || this.getGridService().paging.pageSize  !== pageSize) {
+        console.log("NOW SET PAGE SIZE");
         this.gridService.setPageSize(pageSize);
       }
     }
-    
-    this.calculatingSize = false;
   }
 
   private setGridData(gridData: Row[]): void {

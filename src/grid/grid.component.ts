@@ -1007,8 +1007,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   public doPageSize(value: number): void {
-    console.log("DO PAGE SIZE");
-    console.log(value);
     this.gridService.setPageSize(value);
   }
 
@@ -1632,19 +1630,12 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
     
-    console.log("UPDATE SIZE");
-    console.log(this.paging.pageSize);
-    console.log(this.calculatedPageSize);
-    
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
       var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight;
       pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
       nVisibleRows = pageSize;
     }
-    
-    console.log("VISIBLE ROWS");
-    console.log(nVisibleRows);
     
     contentViewHeight = 0;
     if (this.height > 0) {
@@ -1803,6 +1794,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
         //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
         if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
           var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight - 17;
+          //Regardless of calculated size, showing a minimum of 3 rows
           pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
           nVisibleRows = pageSize;
           
@@ -1825,13 +1817,11 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     //This will trigger an update for the data, but should not trigger a re-calculation of sizing
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
-      console.log("UPDATE SIZES");
-      console.log(pageSize);
+
       //Updated to new calculated page size
       this.calculatedPageSize = pageSize;
       
       if (! this.getGridService().paging.pageSize || this.getGridService().paging.pageSize  !== pageSize) {
-        console.log("NOW SET PAGE SIZE");
         this.gridService.setPageSize(pageSize);
       }
     }

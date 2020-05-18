@@ -21,12 +21,14 @@ import {BigTextPopup} from "./cell/viewPopupRenderer/bigtext-popup.component";
 import {ConfigMenuComponent} from "./config/config-menu.component";
 import {GridGlobalService} from "./services/grid-global.service";
 import {ConfigMultiChoiceComponent} from "./config/config-multi-choice.component";
+import {AngularResizedEventModule} from 'angular-resize-event';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
-    MatMenuModule
+    MatMenuModule,
+    AngularResizedEventModule
   ],
   declarations: [
     GridComponent,

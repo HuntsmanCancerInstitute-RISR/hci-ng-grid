@@ -75,13 +75,6 @@ import {Dictionary} from "../model/dictionary.interface";
               <input type="number" [ngModel]="config.nVisibleRows" (ngModelChange)="update('nVisibleRows', $event)">
             </div>
           </div>
-          <div class="cfg-row">
-            <div class="label">Maximize Grid</div>
-            <div class="input checkbox" [class.checked]="config.isMaximized" (click)="update('isMaximized', !config.isMaximized)">
-              <span *ngIf="config.columnHeaders"><i class="fas fa-check-circle fa-lg"></i></span>
-              <span *ngIf="!config.columnHeaders"><i class="fas fa-times-circle fa-lg"></i></span>
-            </div>
-          </div>
         </div>
       </ng-container>
       <ng-container *ngIf="state === 2">
@@ -235,7 +228,7 @@ export class ConfigMenuComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.themeChoices = this.gridGlobalService.themeChoices;
 
-    this.grid.getGridService().getConfigSubject().subscribe((config: any) => {
+    this.configSubscription = this.grid.getGridService().getConfigSubject().subscribe((config: any) => {
       this.config = config;
     });
   }

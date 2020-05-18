@@ -4,11 +4,13 @@
 import {
   AfterViewInit, ComponentFactoryResolver, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input,
   isDevMode, OnChanges, Output, Renderer2, SimpleChange, ViewChild, ViewContainerRef, Injector, TemplateRef,
-  ApplicationRef, ComponentRef, EmbeddedViewRef
+  ApplicationRef, ComponentRef, EmbeddedViewRef, OnDestroy
 } from "@angular/core";
 
 import {interval, Observable, Subject, Subscription} from "rxjs";
 import {take, takeWhile} from "rxjs/operators";
+import {untilDestroyed} from "ngx-take-until-destroy";
+import {ResizedEvent} from 'angular-resize-event';
 
 import {HciDataDto, HciFilterDto, HciGridDto, HciPagingDto, HciSortDto} from "hci-ng-grid-dto";
 
@@ -62,6 +64,7 @@ const SCROLL: number = 1;
          id="grid-container"
          [ngClass]="config.theme"
          (click)="click($event)"
+         (resized)="resize($event)"
          (mouseover)="mouseOver($event)"
          (mouseout)="mouseOut($event)"
          (mousedown)="mouseDown($event)"
@@ -103,9 +106,6 @@ const SCROLL: number = 1;
               </a>
               <a>
                 <i class="fas fa-eye fa-lg mx-2 "></i>
-              </a>
-              <a (click)="update('isMaximized', !config.isMaximized)">
-                <i class="fas fa-expand fa-lg mx-2"></i>
               </a>
               <a [matMenuTriggerFor]="configDropdownToggle">
                 <i class="fas fa-cog fa-lg mx-2"></i>
@@ -242,6 +242,7 @@ const SCROLL: number = 1;
                     [ngModel]="paging.pageSize"
                     (ngModelChange)="doPageSize($event)"
                     [disabled]="busy">
+              <option *ngIf="autoCalcPageSize" [ngValue]="calculatedPageSize">AUTO</option>
               <option *ngFor="let o of config.pageSizes" [ngValue]="o">{{o}}</option>
             </select>
             <span (click)="doPageNext()" class="pl-3 pr-3"><span class="fas fa-forward"></span></span>
@@ -263,12 +264,14 @@ const SCROLL: number = 1;
 
     :host {
       width: 100%;
+      flex-direction: column;
+      flex-grow: 1;
     }
     
     .hci-grid-iframe {
-      height: 0px;
+      height: 100%;
       width: 100%;
-      position: relative;
+      position: absolute;
       display: flex;
       z-index: -1;
       border: none;
@@ -500,7 +503,7 @@ const SCROLL: number = 1;
     }
   `]
 })
-export class GridComponent implements OnChanges, AfterViewInit {
+export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
   @ViewChild("mainContentHeaderContainer", { read: ViewContainerRef, static: true }) headerContainer: ViewContainerRef;
   @ViewChild("mainContentPopupContainer", { read: ViewContainerRef, static: true }) popupContainer: ViewContainerRef;
@@ -526,7 +529,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
 
   // The following inputs are useful shortcuts for what can be provided via the config input.
   @Input() configurable: boolean = false;
-  @Input() display: string = "flow-root";
+  @Input() display: string = "flex";
   @Input() addNewRowButtonLocation: string;
   @Input("title") inputTitle: string;
   @Input("theme") inputTheme: string;
@@ -538,6 +541,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
   @Input() externalFiltering: boolean;
   @Input() externalSorting: boolean;
   @Input() externalPaging: boolean;
+  @Input() autoCalcPageSize: boolean = false;
   @Input("pageSize") inputPageSize: number;
   @Input("pageSizes") inputPageSizes: number[];
   @Input("nVisibleRows") inputNVisibleRows: number = -1;
@@ -568,12 +572,15 @@ export class GridComponent implements OnChanges, AfterViewInit {
   @Output() warning: EventEmitter<string> = new EventEmitter<string>();
   @Output() selectedRows: EventEmitter<any[]> = new EventEmitter<any[]>();
 
+  currentHeight: number;
+  currentWidth: number;
   config: any = {};
   columnMap: Map<string, Column[]>;
   gridData: Row[] = [];
   paging: HciPagingDto = new HciPagingDto();
   initialized: boolean = false;
   gridContainerHeight: number = 0;
+  calculatedPageSize: number = 3;
 
   /* Timers and data to determine the difference between single and double clicks. */
   clickTimer: any;
@@ -619,6 +626,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
   private mouseOutListeners: EventListener[] = [];
 
   private iFrameWidth: number[] = [0, 0];
+  private iFrameHeight: number[] = [0, 0];
 
   private renderDelay: boolean = false;
   private updateSelectedRowsTimeout: any;
@@ -645,7 +653,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
       this.renderer.setStyle(this.el.nativeElement, "height", this.height + "px");
     }
 
-    this.gridMessageService.messageObservable.subscribe((message: string) => {
+    this.gridMessageService.messageObservable.pipe(untilDestroyed(this)).subscribe((message: string) => {
       if (this.logWarnings) {
         console.warn(message);
       }
@@ -661,10 +669,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
   ngAfterViewInit() {
     this.findBaseRowCell();
 
-    this.gridService.getConfigSubject().subscribe((config: any) => {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": getConfigSubect().subscribe");
-      }
+    this.gridService.getConfigSubject().pipe(untilDestroyed(this)).subscribe((config: any) => {
 
       this.config = config;
       this.loadingSubject.next(false);
@@ -690,29 +695,21 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     /* The grid component handles the footer which includes paging.  Listen to changes in the pageInfo and update. */
-    this.gridService.pagingSubject.subscribe((paging: HciPagingDto) => {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": this.gridService.pageInfoObserved: " + paging.toString());
-      }
+    this.gridService.pagingSubject.pipe(untilDestroyed(this)).subscribe((paging: HciPagingDto) => {
       this.paging = paging;
     });
 
     /* When the bound data updates, pass it off to the grid service for processing. */
-    this.boundDataSubject.subscribe((boundData: Object[]) => {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": boundDataSubject.subscribe: " + boundData.length);
-      }
+    this.boundDataSubject.pipe(untilDestroyed(this)).subscribe((boundData: Object[]) => {
       this.gridService.getBusySubject().next(true);
       this.gridService.setOriginalData(this.boundData);
       this.gridService.initData();
       this.gridService.getBusySubject().next(false);
+      let od = this.gridService.getPreparedData();
     });
 
     /* Subscribe to loading change.  Update the loading boolean. */
-    this.loadingSubject.subscribe((loading: boolean) => {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": loadingSubject.subscribe: " + loading);
-      }
+    this.loadingSubject.pipe(untilDestroyed(this)).subscribe((loading: boolean) => {
       this.loading = loading;
       if (this.loadingOverlay && this.loadingOverlay.nativeElement) {
         if (loading) {
@@ -724,10 +721,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     /* Subscribe to busy change.  Update the busy boolean. */
-    this.gridService.getBusySubject().subscribe((busy: boolean) => {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": busySubject.subscribe: " + busy);
-      }
+    this.gridService.getBusySubject().pipe(untilDestroyed(this)).subscribe((busy: boolean) => {
       this.busy = busy;
       if (this.busyOverlay && this.busyOverlay.nativeElement) {
         if (busy) {
@@ -739,22 +733,14 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
     });
 
-    /* Listen to changes in Sort/Filter/Page.
-     If there is an onExternalDataCall defined, send that info to that provided function. */
-    /*if (this.onExternalDataCall) {
-      this.gridService.externalInfoObserved.subscribe((externalInfo: HciGridDto) => {
-        this.updateGridContainerHeight();
-        this.gridService.doExternalDataCall(externalInfo);
-      });
-    }*/
 
-    this.gridService.getSelectedRowsSubject().subscribe((selectedRows: any[]) => {
+    this.gridService.getSelectedRowsSubject().pipe(untilDestroyed(this)).subscribe((selectedRows: any[]) => {
       this.updateSelectedRows(selectedRows);
 
       this.selectedRows.emit(selectedRows);
     });
 
-    this.gridService.getEventSubject().subscribe((event: any) => {
+    this.gridService.getEventSubject().pipe(untilDestroyed(this)).subscribe((event: any) => {
       if (this.initialized) {
         if (event && event.type === "filter" && event.status === "complete") {
           this.outputDataFiltered.emit(event);
@@ -764,11 +750,11 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
     });
 
-    this.gridService.getSortsSubject().subscribe((event: HciSortDto[]) => {
+    this.gridService.getSortsSubject().pipe(untilDestroyed(this)).subscribe((event: HciSortDto[]) => {
       this.outputSortEvent.emit(event);
     });
 
-    this.gridService.getFilterEventSubject().subscribe((filters: HciFilterDto[]) => {
+    this.gridService.getFilterEventSubject().pipe(untilDestroyed(this)).subscribe((filters: HciFilterDto[]) => {
       if (this.initialized) {
         this.outputFilterEvent.emit(filters);
       }
@@ -779,10 +765,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     this.gridEventService.setSelectedLocation(undefined, undefined);
 
     /* Listen to changes in the data.  Updated data when the data service indicates a change. */
-    this.gridService.getViewDataSubject().subscribe((data: Row[]) => {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": viewDataSubject.subscribe: " + data.length);
-      }
+    this.gridService.getViewDataSubject().pipe(untilDestroyed(this)).subscribe((data: Row[]) => {
       this.setGridData(data);
     });
 
@@ -802,12 +785,13 @@ export class GridComponent implements OnChanges, AfterViewInit {
       this.event = RESIZE;
 
       let iw: number = this.iframeSensor.nativeElement.offsetWidth;
+      let ih: number = this.iframeSensor.nativeElement.offsetHeight;
 
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": iframeSensor: hci-grid width: " + this.el.nativeElement.offsetWidth + ", iFrame Resize: " + this.iFrameWidth + ", " + iw);
-      }
-
-      if (iw !== this.iFrameWidth[0] && Math.abs(this.iFrameWidth[1] - iw) > 2) {
+      //If not already renderingCellsAndData... Don't want to recursively change.
+      //if (! this.calculatingSize &&
+      if    ((iw !== this.iFrameWidth[0] && Math.abs(this.iFrameWidth[1] - iw) > 2)
+          || (this.autoCalcPageSize && ih !== this.iFrameHeight[0] && Math.abs(this.iFrameHeight[1] - ih))) {
+        
         if (this.resizeTimer) {
           clearTimeout(this.resizeTimer);
         }
@@ -819,15 +803,16 @@ export class GridComponent implements OnChanges, AfterViewInit {
         this.iFrameWidth[0] = this.iFrameWidth[1];
         this.iFrameWidth[1] = iw;
       }
+      if (ih !== this.iFrameHeight[1]) {
+        this.iFrameHeight[0] = this.iFrameHeight[1];
+        this.iFrameHeight[1] = ih;
+      }
     });
 
     /* Update the pageInfo from the proper one in the gridService. */
     this.paging = this.gridService.paging;
 
-    this.selectedLocationSubscription = this.gridEventService.getSelectedLocationSubject().subscribe((p: Point) => {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": GridComponent.selectedLocationSubscription");
-      }
+    this.selectedLocationSubscription = this.gridEventService.getSelectedLocationSubject().pipe(untilDestroyed(this)).subscribe((p: Point) => {
       this.popupContainer.clear();
       this.leftCellEditContainer.clear();
       this.rightCellEditContainer.clear();
@@ -841,9 +826,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
     });
 
     this.gridEventService.getUnselectSubject().subscribe((p: Point) => {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": GridComponent.unselectSubjectSubscription");
-      }
       this.popupContainer.clear();
       this.leftCellEditContainer.clear();
       this.rightCellEditContainer.clear();
@@ -851,19 +833,19 @@ export class GridComponent implements OnChanges, AfterViewInit {
       this.focuser1.nativeElement.focus();
     });
 
-    this.gridEventService.getSelectedRange().subscribe((range: Range) => {
+    this.gridEventService.getSelectedRange().pipe(untilDestroyed(this)).subscribe((range: Range) => {
       this.updateSelectedCells(range);
     });
 
-    this.gridService.getValueSubject().subscribe((location: Point) => {
+    this.gridService.getValueSubject().pipe(untilDestroyed(this)).subscribe((location: Point) => {
       this.renderCellsAndData();
     });
 
-    this.gridService.getDataChangeSubject().subscribe((dataChange: any) => {
+    this.gridService.getDataChangeSubject().pipe(untilDestroyed(this)).subscribe((dataChange: any) => {
       this.onCellSave.emit(dataChange);
     });
 
-    this.gridService.getDirtyCellsSubject().subscribe((dirtyCells: Point[]) => {
+    this.gridService.getDirtyCellsSubject().pipe(untilDestroyed(this)).subscribe((dirtyCells: Point[]) => {
       this.renderDirtyCells(dirtyCells);
     });
 
@@ -877,11 +859,11 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
     });
 
-    this.gridService.getNewRowMessageSubject().subscribe((newRowMessage: string) => {
+    this.gridService.getNewRowMessageSubject().pipe(untilDestroyed(this)).subscribe((newRowMessage: string) => {
       this.newRowMessage = newRowMessage;
     });
 
-    this.gridService.getNewRowSubject().subscribe((newRow: Row) => {
+    this.gridService.getNewRowSubject().pipe(untilDestroyed(this)).subscribe((newRow: Row) => {
       this.newRowMessage = undefined;
 
       let gridContent: HTMLElement = this.gridContainer.nativeElement.querySelector("#grid-content");
@@ -921,11 +903,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
   ngOnChanges(changes: {[propName: string]: SimpleChange}) {
     if (!this.initialized) {
       return;
-    }
-
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": ngOnChanges");
-      console.info(changes);
     }
 
     if (changes["config"]) {
@@ -978,9 +955,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * Create instances of the event listeners and place them in the appropriate event type arrays.
    */
   public registerEventListeners(): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": registerEventListeners");
-    }
 
     if (this.gridService.isGrouping()) {
       this.eventListeners = [{type: GroupKeyListener}].concat(this.eventListeners);
@@ -989,9 +963,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
     this.resetEventListeners();
 
     for (let eventListener of this.eventListeners) {
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": registering: " + eventListener.type.name);
-      }
 
       let instance: EventListener = new InjectableFactory<EventListener>(eventListener.type, this.injector).getInstance();
       instance.setGrid(this);
@@ -1026,11 +997,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
   }
 
   update(key: string, value: any) {
-    if (isDevMode()) {
-      console.debug("ConfigMenuComponent.update: " + key);
-      console.debug(value);
-    }
-
     let config = {};
     config[key] = value;
     this.getGridService().updateConfig(config);
@@ -1073,9 +1039,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
   }
 
   public clearSelectedRows(): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": clearSelectedRows");
-    }
 
     let rows: HTMLElement[] = this.gridContainer.nativeElement.querySelectorAll(".hci-grid-row");
 
@@ -1136,9 +1099,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     }
 
     if (delay && el) {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": doRender: delay && el: " + el.style.display);
-      }
+
       this.doRenderSubscription = interval(delay)
           .pipe(takeWhile((i: any) => {
             return el.style.display === "none" && i < 10;
@@ -1151,20 +1112,27 @@ export class GridComponent implements OnChanges, AfterViewInit {
             }
           );
     } else if (delay) {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": doRender: delay");
-      }
       this.doRenderSubscription = interval(delay)
           .pipe(take(1))
           .subscribe(i => {
             this.renderCellsAndData();
           });
     } else {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": doRender: none");
-      }
       this.renderCellsAndData();
     }
+  }
+  
+  /**
+   * Handled for resize event.
+   *
+   * @param {ResizeEvent} event
+   */
+  public resize(event: ResizedEvent): void {
+    if (!event) {
+      return;
+    }
+
+    this.doRender();
   }
 
   /**
@@ -1173,9 +1141,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
   public onScrollRightView(event: Event): void {
     this.event = SCROLL;
 
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": onScrollRightView");
-    }
     let rightRowContainer: HTMLElement = this.gridContainer.nativeElement.querySelector("#right-view");
 
     if (this.lastScrollPoint && this.lastScrollPoint.equalsIJ(rightRowContainer.scrollLeft, rightRowContainer.scrollTop)) {
@@ -1212,16 +1177,13 @@ export class GridComponent implements OnChanges, AfterViewInit {
       return;
     }
 
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": mouseDown " + (<HTMLElement>event.target).id);
-    }
-
     for (let mouseDownListener of this.mouseDownListeners) {
       if (mouseDownListener["mouseDown"](event)) {
         break;
       }
     }
   }
+  
 
   /**
    * Handled for mouseOver event.
@@ -1267,10 +1229,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
       return;
     }
 
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": mouseUp " + (<HTMLElement>event.target).id);
-    }
-
     for (let mouseUpListener of this.mouseUpListeners) {
       if (mouseUpListener["mouseUp"](event)) {
         break;
@@ -1303,9 +1261,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {MouseEvent} event
    */
   public click(event: MouseEvent): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": click");
-    }
 
     if (!event || !event.target) {
       return;
@@ -1316,9 +1271,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
 
     this.clickTimer = setTimeout(() => {
       if (!this.singleClickCancel) {
-        if (isDevMode()) {
-          console.debug("hci-grid: " + this.id + ": single click");
-        }
         for (let clickListener of this.clickListeners) {
           if (clickListener["click"](event)) {
             break;
@@ -1336,9 +1288,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
   public dblClick(event: MouseEvent): void {
     this.singleClickCancel = true;
     clearTimeout(this.clickTimer);
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": onDblClick");
-    }
 
     for (let dblClickListener of this.dblClickListeners) {
       if (dblClickListener["dblclick"](event)) {
@@ -1356,10 +1305,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {Event} event
    */
   public onFocus(event: Event): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": onFocus: " + (<HTMLElement>event.target).id);
-    }
-
     event.stopPropagation();
     let id: string = (<HTMLElement>event.target).id;
     if (id === "focuser2") {
@@ -1373,14 +1318,8 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {MouseEvent} event
    */
   public keyDown(event: KeyboardEvent): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": GridComponent.onKeyDown");
-    }
 
     if (event.ctrlKey && event.keyCode === 67) {
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": Copy Event");
-      }
 
       let range: Range = this.gridEventService.getCurrentRange();
       if (range && !range.min.equals(range.max)) {
@@ -1408,10 +1347,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
     } else if (event.ctrlKey && event.keyCode === 86) {
       this.copypastearea.nativeElement.select();
       let paste: string = this.copypastearea.nativeElement.value;
-
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": Paste Event: " + paste);
-      }
 
       let range: Range = this.gridEventService.getCurrentRange();
       let p: Point = this.gridEventService.getSelectedLocation();
@@ -1471,9 +1406,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
       i = range.min.i;
       j = range.min.j;
 
-      if (isDevMode()) {
-        console.info("hci-grid: " + this.id + ": allowPaste: " + allowPaste);
-      }
       if (allowPaste === 0) {
         for (var ii = 0; ii < rows.length; ii++) {
           cols = rows[ii].split("\t");
@@ -1522,9 +1454,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {Point} location The cell location to perform popup on.
    */
   public createPopup(location: Point): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": createPopup at " + location.toString());
-    }
 
     let column: Column = this.columnMap.get("ALL")[location.j];
     if (!column.popupRenderer) {
@@ -1566,9 +1495,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {any[]} selectedRows
    */
   public updateSelectedRows(selectedRows: any[]): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": updateSelectedRows: " + JSON.stringify(selectedRows));
-    }
 
     this.clearSelectedRows();
 
@@ -1609,9 +1535,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * combination of config and @Input settings.
    */
   private buildConfigFromInput(): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": buildConfigFromInput");
-    }
 
     if (this.id !== undefined) {
       this.inputConfig.id = this.id;
@@ -1676,6 +1599,11 @@ export class GridComponent implements OnChanges, AfterViewInit {
     if (this.newRowPostCallFinally) {
       this.inputConfig.newRowPostCallFinally = this.newRowPostCallFinally;
     }
+    
+    //If auto, set page size to initial size. Defaults to 3, then is updated when calculated.
+    if (this.autoCalcPageSize) {
+      this.inputConfig.pageSize = this.calculatedPageSize;
+    }
 
     if (this.inputConfig.id === undefined && this.id === undefined) {
       this.id = this.gridService.id;
@@ -1696,10 +1624,9 @@ export class GridComponent implements OnChanges, AfterViewInit {
    */
   private updateGridContainerHeightAndColumnSizes(): void {
     this.gridService.setNVisibleRows();
-
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": updateGridContainerHeightAndColumnSizes: " + this.gridService.getNVisibleRows() + " " + this.paging.pageSize);
-    }
+    
+    let nVisibleRows: number = this.gridService.getNVisibleRows();
+    var pageSize: number = this.paging.pageSize;
 
     let gridHeight: number = 0;
     let contentViewHeight: number = 0;
@@ -1718,15 +1645,22 @@ export class GridComponent implements OnChanges, AfterViewInit {
     try {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
-
+    
+    //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+    if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+      var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight;
+      pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
+      nVisibleRows = pageSize;
+    }
+    
     contentViewHeight = 0;
     if (this.height > 0) {
       contentViewHeight = this.height - titleHeight - headerHeight - footerHeight;
     } else {
-      if (this.gridService.getNVisibleRows() <= 0) {
+      if (nVisibleRows <= 0) {
         contentViewHeight = Math.max(this.rowHeight * 3, this.gridData.length * this.rowHeight);
       } else {
-        contentViewHeight = Math.max(this.rowHeight * 3, this.gridService.getNVisibleRows() * this.rowHeight);
+        contentViewHeight = Math.max(this.rowHeight * 3, nVisibleRows * this.rowHeight);
       }
     }
 
@@ -1742,22 +1676,12 @@ export class GridComponent implements OnChanges, AfterViewInit {
     let e = this.gridContainer.nativeElement;
     let gridWidth: number = this.el.nativeElement.offsetWidth;
 
-    if (gridWidth === 0 && !this.renderDelay) {
-      this.renderDelay = true;
-      this.doRender(100);
-      return;
-    }
-    this.renderDelay = false;
-
     this.renderer.setStyle(this.gridContainer.nativeElement, "width", gridWidth + "px");
     let insideGridWidth: number = gridWidth;
 
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": gridWidth: " + gridWidth);
-    }
-    if (this.gridService.getNVisibleRows() > 0
-        && ((this.paging.pageSize > 0 && this.gridService.getNVisibleRows() < this.paging.pageSize)
-        || (this.paging.pageSize < 0 && this.gridService.getNVisibleRows() < this.gridData.length))) {
+    if (nVisibleRows > 0
+        && ((pageSize > 0 && nVisibleRows < pageSize)
+        || (pageSize < 0 && nVisibleRows < this.gridData.length))) {
       insideGridWidth = gridWidth - 17;
     }
 
@@ -1775,14 +1699,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
     let nAutoWidth: number = 0;
     let availableWidth: number = insideGridWidth;
 
-    if (isDevMode()) {
-      if (!this.gridService.isColumnMapDefined()) {
-        console.debug("hci-grid: " + this.id + ": columnMap is undefined");
-      } else {
-        console.debug("hci-grid: " + this.id + ": visible columnMap: " + this.columnMap.get("VISIBLE").length);
-      }
-    }
-
     if (this.gridService.isColumnMapDefined()) {
       for (let column of this.columnMap.get("VISIBLE")) {
         column.renderWidth = 0;
@@ -1793,9 +1709,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
 
       let percentWidth: number = availableWidth;
-      if (isDevMode()) {
-        console.debug("hci-grid: " + this.id + ": percentWidth: " + percentWidth);
-      }
 
       for (let column of this.columnMap.get("VISIBLE")) {
         if (column.widthPercent > 0) {
@@ -1807,9 +1720,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
       }
 
       if (nAutoWidth > 0) {
-        if (isDevMode()) {
-          console.debug("hci-grid: " + this.id + ": nAutoWidth: " + nAutoWidth);
-        }
 
         for (let column of this.columnMap.get("VISIBLE")) {
           if (column.renderWidth === 0) {
@@ -1884,7 +1794,7 @@ export class GridComponent implements OnChanges, AfterViewInit {
     e = this.gridContainer.nativeElement.querySelector("#right-view");
     this.renderer.setStyle(e, "margin-left", Math.max(fixedWidth, fixedMinWidth) + "px");
     this.renderer.setStyle(e, "width", rightViewWidth + "px");
-    if (this.gridService.getNVisibleRows() === this.paging.pageSize && this.paging.pageSize !== -1) {
+    if (nVisibleRows === pageSize && pageSize !== -1) {
       this.renderer.setStyle(e, "overflow-y", "hidden");
     } else {
       this.renderer.setStyle(e, "overflow-y", "auto");
@@ -1895,6 +1805,18 @@ export class GridComponent implements OnChanges, AfterViewInit {
       this.renderer.removeClass(e, "hidden-x");
 
       if (!this.height) {
+
+        //If auto calc, we may need less rows to accomodate scrollbar
+        //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+        if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+          var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight - 17;
+          //Regardless of calculated size, showing a minimum of 3 rows
+          pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
+          nVisibleRows = pageSize;
+          
+          contentViewHeight = nVisibleRows * this.rowHeight;
+        }
+
         contentViewHeight += 17;
       }
       this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#main-content"), "height", (headerHeight + contentViewHeight) + "px");
@@ -1907,14 +1829,21 @@ export class GridComponent implements OnChanges, AfterViewInit {
     } else {
       this.renderer.addClass(e, "hidden-x");
     }
+    
+    //This will trigger an update for the data, but should not trigger a re-calculation of sizing
+    //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+    if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+
+      //Updated to new calculated page size
+      this.calculatedPageSize = pageSize;
+      
+      if (! this.getGridService().paging.pageSize || this.getGridService().paging.pageSize  !== pageSize) {
+        this.gridService.setPageSize(pageSize);
+      }
+    }
   }
 
   private setGridData(gridData: Row[]): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": setGridData");
-      console.debug(gridData);
-    }
-
     this.gridData = gridData;
     this.renderCellsAndData();
   }
@@ -1923,16 +1852,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * Removed currently rendered rows.  Then render cells and inject html from the view renderers in to each cell.
    */
   private renderCellsAndData(scroll?: boolean): void {
-    if (isDevMode()) {
-      if (this.gridService.isColumnMapDefined()) {
-        console.debug("hci-grid: " + this.id + ": renderCellsAndData: columnMap.length: " + this.columnMap.get("ALL").length + " gridData.length: " + this.gridData.length);
-      } else {
-        console.debug("hci-grid: " + this.id + ": renderCellsAndData: columnMap is undefined: gridData.length: " + this.gridData.length);
-      }
-      if (scroll) {
-        console.debug("hci-grid: " + this.id + ": renderCellsAndData: scroll: " + scroll);
-      }
-    }
 
     // Force column headers to redraw based on new width calculations.
     this.changeDetectorRef.detectChanges();
@@ -2207,9 +2126,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {number} j The column number.
    */
   private selectComponent(i: number, j: number): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": selectComponent: " + i + " " + j);
-    }
     let e = this.gridContainer.nativeElement.querySelector("#cell-" + i + "-" + j);
 
     this.clearSelectedComponents();
@@ -2233,9 +2149,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {HTMLElement} cellElement The cell dom element.
    */
   private createCellComponent(cellElement: HTMLElement): void {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.id + ": createCellComponent: " + cellElement.id);
-    }
     this.popupContainer.clear();
     this.leftCellEditContainer.clear();
     this.rightCellEditContainer.clear();
@@ -2285,9 +2198,6 @@ export class GridComponent implements OnChanges, AfterViewInit {
    * @param {Range} range The min and max cell location that represents the selection.
    */
   private updateSelectedCells(range: Range): void {
-    if (isDevMode()) {
-      console.info("hci-grid: " + this.id + ": updateSelectedCells: " + ((range) ? range.toString() : "undefined"));
-    }
 
     let es: HTMLElement[] = this.gridContainer.nativeElement.querySelectorAll(".hci-grid-cell");
 

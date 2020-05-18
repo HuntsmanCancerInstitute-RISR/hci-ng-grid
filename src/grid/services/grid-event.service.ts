@@ -1,6 +1,7 @@
-import {Injectable, isDevMode} from "@angular/core";
+import {Injectable, isDevMode, OnDestroy} from "@angular/core";
 
 import {Subject} from "rxjs";
+import {untilDestroyed} from "ngx-take-until-destroy";
 
 import {GridService} from "./grid.service";
 import {Point} from "../utils/point";
@@ -18,7 +19,7 @@ export const ARROW = 2;
  * are selected.  It also then emits the new selected cell or range of cells so the grid can update rendering.
  */
 @Injectable()
-export class GridEventService {
+export class GridEventService implements OnDestroy {
 
   private nColumns: number = 0;
   private selectedLocation: Point = new Point(-1, -1);
@@ -36,14 +37,12 @@ export class GridEventService {
   private newRow: Row;
 
   constructor(private gridService: GridService) {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.gridService.id + ": GridEventService constructor");
-    }
-
-    this.gridService.getNewRowSubject().subscribe((newRow: Row) => {
+    this.gridService.getNewRowSubject().pipe(untilDestroyed(this)).subscribe((newRow: Row) => {
       this.newRow = newRow;
     });
   }
+  
+  ngOnDestroy() {}
 
   getCurrentRange(): Range {
     return this.currentRange;
@@ -58,10 +57,6 @@ export class GridEventService {
   }
 
   setCurrentLocation(location: Point) {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.gridService.id + ": GridEvent.setCurrentLocation: " + (location ? location.toString() : "undefined"));
-    }
-
     this.selectedLocation = location;
     this.selectedLocationSubject.next(this.selectedLocation);
   }
@@ -73,9 +68,6 @@ export class GridEventService {
   }
 
   setMouseDragSelected(location: Point) {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.gridService.id + ": setMouseOnDownSelected: " + ((location) ? location.toString() : "undefined"));
-    }
 
     if (!location) {
       return;
@@ -90,9 +82,6 @@ export class GridEventService {
   }
 
   setSelectedLocation(location: Point, eventMeta: EventMeta) {
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.gridService.id + ": GridEvent.setSelectedLocation");
-    }
 
     if (!location) {
       return;
@@ -196,10 +185,6 @@ export class GridEventService {
     // Notify that a new row has been selected.  This is used for auto saving when the row is dirty.
     if (oldRowNum !== -1 && this.selectedLocation.i !== -1 && oldRowNum !== this.selectedLocation.i) {
       this.gridService.getRowChangedSubject().next(new RowChange(oldRowNum, this.selectedLocation.i));
-    }
-
-    if (isDevMode()) {
-      console.debug("hci-grid: " + this.gridService.id + ": arrowFrom: to: " + this.selectedLocation.toString());
     }
 
     this.selectedLocationSubject.next(this.selectedLocation);

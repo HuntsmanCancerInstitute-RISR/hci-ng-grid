@@ -1,10 +1,11 @@
 import {
   ChangeDetectorRef, Component, ComponentFactoryResolver, ElementRef, HostListener, Input, Renderer2,
-  ViewContainerRef
+  ViewContainerRef, OnDestroy
 } from "@angular/core";
 
 import { of } from 'rxjs';
 import { delay } from 'rxjs/internal/operators';
+import {untilDestroyed} from "ngx-take-until-destroy";
 
 import {HciFilterDto, HciSortDto} from "hci-ng-grid-dto";
 
@@ -63,7 +64,7 @@ import {FilterRenderer} from "./filterRenderers/filter-renderer";
     }
   `],
 })
-export class ColumnHeaderComponent {
+export class ColumnHeaderComponent implements OnDestroy {
 
   @Input() column: Column;
   @Input("container") headerContainer: ViewContainerRef;
@@ -94,7 +95,7 @@ export class ColumnHeaderComponent {
         this.renderer.setStyle(this.filterComponent.elementRef.nativeElement, "display", "none");
         this.renderer.setStyle(this.filterComponent.elementRef.nativeElement, "position", "absolute");
         this.renderer.setStyle(this.filterComponent.elementRef.nativeElement, "z-index", "50");
-        this.filterComponent.close.subscribe((closed: boolean) => {
+        this.filterComponent.close.pipe(untilDestroyed(this)).subscribe((closed: boolean) => {
           this.renderer.setStyle(this.filterComponent.elementRef.nativeElement, "display", "none");
         });
       });
@@ -103,7 +104,7 @@ export class ColumnHeaderComponent {
     this.headerText = this.el.nativeElement.querySelector("#header-text");
     this.hiddenHeaderText = this.el.nativeElement.querySelector("#hidden-header-text");
 
-    this.gridService.getFilterMapSubject().subscribe((filterMap: Map<string, HciFilterDto[]>) => {
+    this.gridService.getFilterMapSubject().pipe(untilDestroyed(this)).subscribe((filterMap: Map<string, HciFilterDto[]>) => {
       if (this.column) {
         if (filterMap.has(this.column.field)) {
           this.hasFilters = filterMap.get(this.column.field).filter((filterInfo: HciFilterDto) => {
@@ -113,7 +114,7 @@ export class ColumnHeaderComponent {
       }
     });
 
-    this.gridService.sortsSubject.subscribe((sorts: HciSortDto[]) => {
+    this.gridService.sortsSubject.pipe(untilDestroyed(this)).subscribe((sorts: HciSortDto[]) => {
       if (this.column.field === "GROUP_BY") {
         this.firstSort = true;
         this.asc = 0;
@@ -143,9 +144,15 @@ export class ColumnHeaderComponent {
       }
     });
   }
+  
+  ngOnDestroy() {}
 
   ngAfterViewInit(): void {
     this.changeDetectorRef.detectChanges();
+    if(this.column.reverseDefaultSort) {
+      this.doDefaultReverseSort();
+      this.column.reverseDefaultSort = !this.column.reverseDefaultSort;
+    }
   }
 
   showFilter() {
@@ -167,6 +174,13 @@ export class ColumnHeaderComponent {
     } else if (this.column.sort) {
       this.gridService.addSort(this.column.field);
     }
+  }
+
+  // Call the sort function twice, because
+  // the first time only sorts it out with ascendance.
+  doDefaultReverseSort() {
+    this.gridService.addSort(this.column.field);
+    this.gridService.addSort(this.column.field);
   }
 
   onMouseOver(event: MouseEvent): void {

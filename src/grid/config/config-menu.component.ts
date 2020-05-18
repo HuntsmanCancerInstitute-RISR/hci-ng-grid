@@ -228,7 +228,7 @@ export class ConfigMenuComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.themeChoices = this.gridGlobalService.themeChoices;
 
-    this.grid.getGridService().getConfigSubject().subscribe((config: any) => {
+    this.configSubscription = this.grid.getGridService().getConfigSubject().subscribe((config: any) => {
       this.config = config;
     });
   }

@@ -15,7 +15,7 @@
     "webpack": "webpack"
   },
   "optionalDependencies": {
-    "hci-ng-grid": "5.0.x"
+    "hci-ng-grid": "5.3.x"
   },
   "dependencies": {
     "@angular/cdk": ">=8.0.0 <10.0.0",

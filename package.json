@@ -1,6 +1,6 @@
 {
   "name": "hci-ng-grid",
-  "version": "5.0.4",
+  "version": "5.3.0",
   "description": "Comprehensive angular grid component",
   "keywords": [
     "angular",
@@ -31,7 +31,8 @@
     "push-dest": "gulp push-dest",
     "rimraf": "rimraf",
     "run-demo": "gulp run-demo",
-    "run-demo-prod": "gulp run-demo-prod"
+    "run-demo-prod": "gulp run-demo-prod",
+    "push-hci-ng": "gulp push-libs-dest --dest ../hci-ng"
   },
   "main": "index.js",
   "module": "index.js",
@@ -74,6 +75,7 @@
     "event-stream": "3.3.4",
     "extend": ">=3.0.2",
     "fs": "^0.0.2",
+    "fs-extra": "7.0.x",
     "gulp": "4.0.x",
     "gulp-clean": "0.4.x",
     "gulp-debug": "4.0.x",

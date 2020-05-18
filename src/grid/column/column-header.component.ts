@@ -149,6 +149,10 @@ export class ColumnHeaderComponent implements OnDestroy {
 
   ngAfterViewInit(): void {
     this.changeDetectorRef.detectChanges();
+    if(this.column.reverseDefaultSort) {
+      this.doDefaultReverseSort();
+      this.column.reverseDefaultSort = !this.column.reverseDefaultSort;
+    }
   }
 
   showFilter() {
@@ -170,6 +174,13 @@ export class ColumnHeaderComponent implements OnDestroy {
     } else if (this.column.sort) {
       this.gridService.addSort(this.column.field);
     }
+  }
+
+  // Call the sort function twice, because
+  // the first time only sorts it out with ascendance.
+  doDefaultReverseSort() {
+    this.gridService.addSort(this.column.field);
+    this.gridService.addSort(this.column.field);
   }
 
   onMouseOver(event: MouseEvent): void {

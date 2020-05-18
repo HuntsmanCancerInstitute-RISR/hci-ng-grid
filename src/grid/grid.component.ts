@@ -696,6 +696,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       this.gridService.setOriginalData(this.boundData);
       this.gridService.initData();
       this.gridService.getBusySubject().next(false);
+      let od = this.gridService.getPreparedData();
     });
 
     /* Subscribe to loading change.  Update the loading boolean. */
@@ -984,6 +985,12 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
         this.mouseOutListeners.push(instance);
       }
     }
+  }
+
+  update(key: string, value: any) {
+    let config = {};
+    config[key] = value;
+    this.getGridService().updateConfig(config);
   }
 
   public getBusySubject(): Subject<boolean> {

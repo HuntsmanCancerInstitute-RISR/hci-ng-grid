@@ -14,7 +14,7 @@ import {GridModule} from "hci-ng-grid";
 
 import {DemoComponent} from "./demo.component";
 import {DataGeneratorService} from "./services/data-generator.service";
-import {DocsComponent} from "./docs/docs.component";
+//import {DocsComponent} from "./docs/docs.component";
 import {EditGridComponent} from "./edit/edit-grid.component";
 import {HomeComponent} from "./home.component";
 import {SimpleGridComponent} from "./simple/simple-grid.component";
@@ -60,7 +60,7 @@ import {NewRowDemo} from "./new-row/new-row.component";
       { path: "copypaste", component: CopyPasteGridComponent },
       { path: "data-types", component: DataTypesDemoComponent },
       { path: "date", component: DateDemoComponent},
-      { path: "docs", component: DocsComponent},
+      //{ path: "docs", component: DocsComponent},
       { path: "dynamic-config", component: DynamicConfigGridComponent },
       { path: "edit", component: EditGridComponent },
       { path: "empty", component: EmptyGridComponent },
@@ -92,7 +92,7 @@ import {NewRowDemo} from "./new-row/new-row.component";
     DateDemoComponent,
     DemoComponent,
     DictionaryFilterRenderer,
-    DocsComponent,
+    //DocsComponent,
     DynamicConfigGridComponent,
     EditGridComponent,
     EmptyGridComponent,

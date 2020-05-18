@@ -106,6 +106,7 @@ export class Column {
 
   renderLeft: number = 0;
   renderWidth: number = 0;
+  reverseDefaultSort: boolean = false;
 
   static deserialize(object): Column {
     return new Column(object);
@@ -327,6 +328,10 @@ export class Column {
 
     if (!this.sortFunction) {
       this.sortFunction = this.createDefaultSortFunction();
+    }
+
+    if(object.reverseDefaultSort !== undefined) {
+      this.reverseDefaultSort = object.reverseDefaultSort;
     }
   }
 

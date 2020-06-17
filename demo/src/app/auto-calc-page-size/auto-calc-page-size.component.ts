@@ -11,7 +11,15 @@ import {DataGeneratorService} from "../services/data-generator.service";
       </div>
       <div class="d-flex flex-column flex-grow-1 flex-shrink-1" style="min-height: 0px">
         <div class="card-text">
-          Test grid page size calculation when the parent grows to fill its available space (this changes as the available space changes)
+          Test grid page size calculation when the parent grows to fill its available space. This changes as the available space changes, or as the window is resized.
+          Changing from 'Auto' to a fixed page size will still calculate the size of the grid, but will produce scrolling, as needed to accomodate the number of desired rows.
+          <br/><br/>
+          It is important to understand that the sizing behavior is dependent on what elements contain the hci-grid tag. If these are of fixed size or percentage this will work as expected.
+          If you use a Flex layout, this will also work, but it is <b>crucial</b> to understand that the expected behavior of flex layouts is that they will not shrink to a lower size
+          than their content, by default. Because the grid sizes based on its parent, this would cause expansion, but not shrinking if the window is sized smaller. This default flex behavior
+          is overriden by specifying any of min-width: 0, min-height: 0, or overflow: hidden. This would need to be the case for all parent divs that size based on flex, to allow shrinking to fit
+          the space. The grid will then size itself to fit. See the source of this page for examples.
+          
           <div class="d-flex flex-nowrap" style="align-items: center;">
             <span style="margin-left: 20px; font-size: 1.5em;">Height Of Other Content: </span>
             <input [ngModel]="height" (ngModelChange)="setHeight($event)" style="margin-left: 10px; font-size: 1.5em;" />
@@ -60,7 +68,7 @@ export class AutoCalcPageSizeComponent {
 
     @HostBinding("class") classList: string = "demo-component";
 
-    height: number = 100;
+    height: number = 30;
 
 
     dataSize: number = 250;

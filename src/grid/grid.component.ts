@@ -1602,26 +1602,40 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
 
+      console.log("CALCULATE SIZES");
+
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+    var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - titleHeight - headerHeight - footerHeight;
+    console.log(availableHeight);
+    
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
-      console.log("AUTO CALCULATE");
-      var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight;
-      console.log(availableHeight);
       pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
       console.log(pageSize);
       nVisibleRows = pageSize;
     }
+    
+    console.log("Visible Rows:");
+    console.log(nVisibleRows);
 
     contentViewHeight = 0;
     if (this.height > 0) {
       contentViewHeight = this.height - titleHeight - headerHeight - footerHeight;
     } else {
       if (nVisibleRows <= 0) {
-        contentViewHeight = Math.max(this.rowHeight * 3, this.gridData.length * this.rowHeight);
+        contentViewHeight = Math.max(availableHeight, this.rowHeight * 3, this.gridData.length * this.rowHeight);
       } else {
-        contentViewHeight = Math.max(this.rowHeight * 3, nVisibleRows * this.rowHeight);
+        contentViewHeight = Math.max(availableHeight, this.rowHeight * 3, nVisibleRows * this.rowHeight);
       }
     }
+    
+    console.log("ContentViewHeight:"); console.log(contentViewHeight);
+    
+    if (this.autoCalcPageSize) {
+      //Smaller of content height or available height (produce scrolling if too large)
+      contentViewHeight = Math.min(contentViewHeight, availableHeight);
+    }
+
+    console.log("Min ContentViewHeight:"); console.log(contentViewHeight);
 
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#main-content"), "height", (headerHeight + contentViewHeight) + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#left-view"), "height", contentViewHeight + "px");
@@ -1753,7 +1767,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     e = this.gridContainer.nativeElement.querySelector("#right-view");
     this.renderer.setStyle(e, "margin-left", Math.max(fixedWidth, fixedMinWidth) + "px");
     this.renderer.setStyle(e, "width", (rightViewWidth - 1) + "px");
-    if (nVisibleRows === pageSize && pageSize !== -1) {
+    if (! this.autoCalcPageSize && nVisibleRows === pageSize && pageSize !== -1) {
       this.renderer.setStyle(e, "overflow-y", "hidden");
     } else {
       this.renderer.setStyle(e, "overflow-y", "auto");
@@ -1765,15 +1779,21 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
       if (!this.height) {
 
-        //If auto calc, we may need less rows to accomodate scrollbar
-        //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
-        if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+        if (this.autoCalcPageSize) {
           var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight - 17;
-          //Regardless of calculated size, showing a minimum of 3 rows
-          pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
-          nVisibleRows = pageSize;
-
-          contentViewHeight = nVisibleRows * this.rowHeight;
+  
+          //We may need less rows to accomodate scrollbar
+          //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+          if (this.paging.pageSize === this.calculatedPageSize) {
+            
+            //Regardless of calculated size, showing a minimum of 3 rows
+            pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
+            nVisibleRows = pageSize;
+  
+            contentViewHeight = nVisibleRows * this.rowHeight;
+          }
+          
+          contentViewHeight = Math.min(contentViewHeight, availableHeight);
         }
 
         contentViewHeight += 17;

@@ -33,6 +33,7 @@ import {EmptyGridComponent} from "./empty/empty-grid.component";
 import {EventComponent} from "./event/event.component";
 import {PopupComponent} from "./popup/popup.component";
 import {ResizeDemoComponent} from "./resize/resize.component";
+import {AutoCalcPageSizeComponent} from "./auto-calc-page-size/auto-calc-page-size.component";
 import {LinkedDemoComponent} from "./linked/linked.component";
 import {LabPopup} from "./components/lab.component";
 import {UserProfileDirective} from "./dynamic-config/user-profile.directive";
@@ -56,6 +57,7 @@ import {NewRowDemo} from "./new-row/new-row.component";
     RouterModule.forRoot([
       { path: "", redirectTo: "/home", pathMatch: "full" },
       { path: "alerts", component: AlertsGridComponent },
+      { path: "auto-calc-page-size", component: AutoCalcPageSizeComponent },
       { path: "busy", component: BusyDemoComponent },
       { path: "copypaste", component: CopyPasteGridComponent },
       { path: "data-types", component: DataTypesDemoComponent },
@@ -86,6 +88,7 @@ import {NewRowDemo} from "./new-row/new-row.component";
   ],
   declarations: [
     AlertsGridComponent,
+    AutoCalcPageSizeComponent,
     BusyDemoComponent,
     CopyPasteGridComponent,
     DataTypesDemoComponent,

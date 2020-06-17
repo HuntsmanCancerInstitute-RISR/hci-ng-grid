@@ -60,6 +60,7 @@ export class HomeComponent {
 
   demos = [
     {header: "Alerts", route: "alerts", body: "Listen for warnings from the grid and manually deal with them."},
+    {header: "Auto Calc Page Size", route: "auto-calc-page-size", body: "Determine number of rows for paging, based on available height"},
     {header: "Busy", route: "busy", body: "Shows the default and custom overlay shown when data is being fetched."},
     {header: "Cell Popup", route: "popup", body: "When text in cells is large, show the entire text in a popup.  Also, custom popups for complex objects."},
     {header: "Copy and Paste", route: "copypaste", body: "Copy and paste from within the grid and to and from spreadsheet software."},

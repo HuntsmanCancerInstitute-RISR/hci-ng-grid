@@ -27,6 +27,7 @@ declare const VERSION: string;
           <mat-menu #routeList="matMenu" class="config">
             <a class="dropdown-item" routerLink="/">Home</a>
             <a class="dropdown-item" routerLink="/alerts">Alerts</a>
+            <a class="dropdown-item" routerLink="/auto-calc-page-size">Auto-Calc Page Size</a>
             <a class="dropdown-item" routerLink="/busy">Busy</a>
             <a class="dropdown-item" routerLink="/popup">Cell Popup</a>
             <a class="dropdown-item" routerLink="/copypaste">Copy/Paste</a>

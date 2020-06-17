@@ -57,14 +57,12 @@ const SCROLL: number = 1;
     GridMessageService
   ],
   template: `
-    <iframe #iframeSensor
-            class="hci-grid-iframe"
-            allowtransparency="true"></iframe>
     <div #gridContainer
          id="grid-container"
          [ngClass]="config.theme"
          (click)="click($event)"
          (resized)="resize($event)"
+         (window:resize)="windowResized()"
          (mouseover)="mouseOver($event)"
          (mouseout)="mouseOut($event)"
          (mousedown)="mouseDown($event)"
@@ -263,19 +261,9 @@ const SCROLL: number = 1;
       `
 
       :host {
+        height:100%;
         width: 100%;
-        flex-direction: column;
-        flex-grow: 1;
-      }
-
-      .hci-grid-iframe {
-        height: 100%;
-        width: 100%;
-        position: absolute;
-        display: flex;
-        z-index: -1;
-        border: none;
-        background-color: transparent;
+        overflow: hidden;
       }
 
       #grid-container {
@@ -518,7 +506,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   @ViewChild("focuser1", {static: true}) focuser1: ElementRef;
   @ViewChild("focuser2", {static: true}) focuser2: ElementRef;
   @ViewChild("rightRowContainer", {static: true}) rightRowContainer: ElementRef;
-  @ViewChild("iframeSensor", {static: true}) iframeSensor: ElementRef;
 
   @Input("data") boundData: Object[];
   @Input("dataCall") onExternalDataCall: (externalInfo: HciGridDto) => Observable<HciDataDto>;
@@ -624,9 +611,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   private mouseUpListeners: EventListener[] = [];
   private mouseOverListeners: EventListener[] = [];
   private mouseOutListeners: EventListener[] = [];
-
-  private iFrameWidth: number[] = [0, 0];
-  private iFrameHeight: number[] = [0, 0];
 
   private renderDelay: boolean = false;
   private updateSelectedRowsTimeout: any;
@@ -780,69 +764,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     this.gridService.updateConfig(this.inputConfig);
 
     this.gridService.setGridElement(this.gridContainer.nativeElement);
-    let iframeSensorElement  = <HTMLIFrameElement>this.iframeSensor.nativeElement;
-    if( iframeSensorElement && iframeSensorElement.contentWindow ) {
-      iframeSensorElement.contentWindow.addEventListener("resize", () => {
-        this.event = RESIZE;
-
-        let iw: number = this.iframeSensor.nativeElement.offsetWidth;
-        let ih: number = this.iframeSensor.nativeElement.offsetHeight;
-
-        //If not already renderingCellsAndData... Don't want to recursively change.
-        //if (! this.calculatingSize &&
-        if    ((iw !== this.iFrameWidth[0] && Math.abs(this.iFrameWidth[1] - iw) > 2)
-            || (this.autoCalcPageSize && ih !== this.iFrameHeight[0] && Math.abs(this.iFrameHeight[1] - ih))) {
-
-          if (this.resizeTimer) {
-            clearTimeout(this.resizeTimer);
-          }
-          this.resizeTimer = setTimeout(() => {
-            this.renderCellsAndData();
-          }, 50);
-        }
-        if (iw !== this.iFrameWidth[1]) {
-          this.iFrameWidth[0] = this.iFrameWidth[1];
-          this.iFrameWidth[1] = iw;
-        }
-        if (ih !== this.iFrameHeight[1]) {
-          this.iFrameHeight[0] = this.iFrameHeight[1];
-          this.iFrameHeight[1] = ih;
-        }
-      });
-    }else {
-      // @ts-ignore
-      iframeSensorElement.src = "about:blank";
-      iframeSensorElement.onload = ((event: any) => {
-        iframeSensorElement.contentWindow.addEventListener("resize", () => {
-          this.event = RESIZE;
-
-          let iw: number = this.iframeSensor.nativeElement.offsetWidth;
-          let ih: number = this.iframeSensor.nativeElement.offsetHeight;
-
-          //If not already renderingCellsAndData... Don't want to recursively change.
-          //if (! this.calculatingSize &&
-          if    ((iw !== this.iFrameWidth[0] && Math.abs(this.iFrameWidth[1] - iw) > 2)
-              || (this.autoCalcPageSize && ih !== this.iFrameHeight[0] && Math.abs(this.iFrameHeight[1] - ih))) {
-
-            if (this.resizeTimer) {
-              clearTimeout(this.resizeTimer);
-            }
-            this.resizeTimer = setTimeout(() => {
-              this.renderCellsAndData();
-            }, 50);
-          }
-          if (iw !== this.iFrameWidth[1]) {
-            this.iFrameWidth[0] = this.iFrameWidth[1];
-            this.iFrameWidth[1] = iw;
-          }
-          if (ih !== this.iFrameHeight[1]) {
-            this.iFrameHeight[0] = this.iFrameHeight[1];
-            this.iFrameHeight[1] = ih;
-          }
-        });
-      });
-    }
-
 
     /* Update the pageInfo from the proper one in the gridService. */
     this.paging = this.gridService.paging;
@@ -1655,7 +1576,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
   /**
    * Calculate the sizes of the containers and column header sizes.  The basic principle is that the grid always fills
-   * the parent's size.  The iframe inside listens to changes to that size to prompt re-rendering of the containers.
+   * the parent's size.
    */
   private updateGridContainerHeightAndColumnSizes(): void {
     this.gridService.setNVisibleRows();
@@ -1683,8 +1604,11 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+      console.log("AUTO CALCULATE");
       var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight;
+      console.log(availableHeight);
       pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
+      console.log(pageSize);
       nVisibleRows = pageSize;
     }
 
@@ -1804,10 +1728,10 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     let rightViewWidth: number = Math.floor(gridWidth - Math.max(fixedWidth, fixedMinWidth));
 
     e = this.gridContainer.nativeElement.querySelector("#title-bar");
-    this.renderer.setStyle(e, "width", (gridWidth + 1) + "px");
+    this.renderer.setStyle(e, "width", (gridWidth) + "px");
 
     e = this.gridContainer.nativeElement.querySelector("#grid-footer");
-    this.renderer.setStyle(e, "width", (gridWidth + 1) + "px");
+    this.renderer.setStyle(e, "width", (gridWidth) + "px");
 
     e = this.gridContainer.nativeElement.querySelector("#left-view");
     this.renderer.setStyle(e, "width", fixedWidth + "px");
@@ -1824,11 +1748,11 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     this.renderer.setStyle(e, "width", gridWidth + "px");
     e = this.gridContainer.nativeElement.querySelector("#right-header-view");
     this.renderer.setStyle(e, "margin-left", Math.max(fixedWidth, fixedMinWidth) + "px");
-    this.renderer.setStyle(e, "width", rightViewWidth + "px");
+    this.renderer.setStyle(e, "width", (rightViewWidth - 1) + "px");
 
     e = this.gridContainer.nativeElement.querySelector("#right-view");
     this.renderer.setStyle(e, "margin-left", Math.max(fixedWidth, fixedMinWidth) + "px");
-    this.renderer.setStyle(e, "width", rightViewWidth + "px");
+    this.renderer.setStyle(e, "width", (rightViewWidth - 1) + "px");
     if (nVisibleRows === pageSize && pageSize !== -1) {
       this.renderer.setStyle(e, "overflow-y", "hidden");
     } else {
@@ -1881,6 +1805,10 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   private setGridData(gridData: Row[]): void {
     this.gridData = gridData;
     this.renderCellsAndData();
+  }
+  
+  public windowResized() {
+      this.renderCellsAndData();
   }
 
   /**

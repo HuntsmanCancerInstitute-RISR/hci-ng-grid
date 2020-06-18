@@ -10,7 +10,7 @@ import {
 import {interval, Observable, Subject, Subscription} from "rxjs";
 import {take, takeWhile} from "rxjs/operators";
 import {untilDestroyed} from "ngx-take-until-destroy";
-import {ResizedEvent} from 'angular-resize-event';
+import {ResizedEvent} from "angular-resize-event";
 
 import {HciDataDto, HciFilterDto, HciGridDto, HciPagingDto, HciSortDto} from "hci-ng-grid-dto";
 
@@ -57,14 +57,12 @@ const SCROLL: number = 1;
     GridMessageService
   ],
   template: `
-    <iframe #iframeSensor
-            class="hci-grid-iframe"
-            allowtransparency="true"></iframe>
     <div #gridContainer
          id="grid-container"
          [ngClass]="config.theme"
          (click)="click($event)"
          (resized)="resize($event)"
+         (window:resize)="windowResized()"
          (mouseover)="mouseOver($event)"
          (mouseout)="mouseOut($event)"
          (mousedown)="mouseDown($event)"
@@ -72,7 +70,7 @@ const SCROLL: number = 1;
          (mousemove)="mouseDrag($event)"
          (dblclick)="dblClick($event)"
          (keydown)="keyDown($event)">
-      
+
       <div #loadingOverlay id="hci-grid-loading">
         <ng-container>
           <div class="busy-default">
@@ -82,10 +80,10 @@ const SCROLL: number = 1;
           </div>
         </ng-container>
       </div>
-      
+
       <input #focuser1 id="focuser1" style="position: absolute; left: -100000px; width: 0px; height: 0px;" (focus)="onFocus($event)" />
       <textarea #copypastearea style="position: absolute; left: -2000px;"></textarea>
-      
+
       <!-- Title Bar -->
       <div id="title-bar"
            [class.hidden]="!config.title && !configurable && addNewRowButtonLocation !== 'title-bar'">
@@ -141,7 +139,7 @@ const SCROLL: number = 1;
           <!--<div [style.display]="!busy ? 'flex' : 'none'" class="empty-content-text">No Data</div>
           <div [style.display]="busy ? 'flex' : 'none'" class="empty-content-text">Loading Data...</div>-->
         </div>
-        
+
         <!-- Container for the header.  Split in to a left view (for fixed columns) and right view. -->
         <div #headerContent
              id="header-content"
@@ -222,7 +220,7 @@ const SCROLL: number = 1;
       </div>
 
       <input #focuser2 id="focuser2" style="position: absolute; left: -100000px; width: 0px; height: 0px;" (focus)="onFocus($event)" />
-      
+
       <!-- Footer -->
       <div id="grid-footer"
            (mouseup)="$event.stopPropagation()"
@@ -260,248 +258,238 @@ const SCROLL: number = 1;
   styles: [
     require("./themes/spreadsheet.css"),
     require("./themes/report.css"),
-    `
+      `
 
-    :host {
-      width: 100%;
-      flex-direction: column;
-      flex-grow: 1;
-    }
-    
-    .hci-grid-iframe {
-      height: 100%;
-      width: 100%;
-      position: absolute;
-      display: flex;
-      z-index: -1;
-      border: none;
-      background-color: transparent;
-    }
-    
-    #grid-container {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-    }
+      :host {
+        height:100%;
+        width: 100%;
+        overflow: hidden;
+      }
 
-    #title-bar.hidden {
-      display: none;
-    }
+      #grid-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
 
-    .title-bar {
-      display: inline-flex;
-      width: 100%;
-    }
+      #title-bar.hidden {
+        display: none;
+      }
 
-    .title-bar .right {
-      margin-left: auto;
-      margin-right: 0px;
-    }
+      .title-bar {
+        display: inline-flex;
+        width: 100%;
+      }
 
-    .title-bar .dropdown-toggle.no-arrow::after {
-      display: none;
-    }
+      .title-bar .right {
+        margin-left: auto;
+        margin-right: 0px;
+      }
 
-    #congigDropdownMenu.dropdown-menu {
-      padding: 0;
-      margin: 0;
-      border: none;
-      background-color: transparent;
-    }
-    
-    #main-content {
-      position: relative;
-      width: 100%;
-      height: 0px;
-    }
-    
-    #header-content {
-      position: relative;
-    }
-    
-    #header-content.hide {
-      display: none;
-      height: 0px;
-    }
-    
-    #left-header-view {
-      position: absolute;
-      display: inline-block;
-      white-space: nowrap;
-      overflow: visible;
-    }
-    
-    #left-header-container {
-      float: left;
-      top: 0px;
-    }
-    
-    #right-header-view {
-      display: inline-block;
-      white-space: nowrap;
-      margin-left: 0px;
-      margin-right: 0px;
-      overflow: hidden;
-      width: 0px;
-    }      
-    
-    #right-header-container {
-      display: inline;
-      position: relative;
-    }
-    
-    #grid-content {
-      display: inline-block;
-      position: absolute;
-      margin-top: 0px;
-    }
-    
-    #left-view {
-      float: left;
-      overflow: hidden;
-      height: 250px;
-    }
-    
-    #left-container {
-      white-space: nowrap;
-      top: 0px;
-      position: relative;
-    }
-    
-    #right-view {
-      position: absolute;
-      margin-left: 0px;
-      width: 0px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      height: 250px;
-    }
-    
-    #right-view.hidden-x {
-      overflow-x: hidden;
-    }
-    
-    #right-container {
-      white-space: nowrap;
-    }
-    
-    .grid-footer {
-      display: flex;
-      border-top: none;
-      padding: 0.25rem;
-      align-items: center;
-    }
-    
-    #pageSize {
-      border: none;
-    }
-    
-    #hci-grid-loading {
-      display: none;
-      position: absolute;
-      z-index: 9999;
-    }
+      .title-bar .dropdown-toggle.no-arrow::after {
+        display: none;
+      }
 
-    #hci-grid-loading.show {
-      display: flex;
-    }
-    
-    #hci-grid-busy {
-      display: none;
-      position: absolute;
-      z-index: 9999;
-    }
+      #congigDropdownMenu.dropdown-menu {
+        padding: 0;
+        margin: 0;
+        border: none;
+        background-color: transparent;
+      }
 
-    #hci-grid-busy.show {
-      display: flex;
-    }
+      #main-content {
+        position: relative;
+        width: 100%;
+        height: 0px;
+      }
 
-    .busy-default {
-      background-color: rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-grow: 1;
-    }
+      #header-content {
+        position: relative;
+      }
 
-    .busy-default-icon {
-      color: #666666;
-    }
+      #header-content.hide {
+        display: none;
+        height: 0px;
+      }
 
-    .row-select > .row-selected-icon {
-      display: none;
-      color: green;
-    }
+      #left-header-view {
+        position: absolute;
+        display: inline-block;
+        white-space: nowrap;
+        overflow: visible;
+      }
 
-    .hci-grid-row.selected .row-select .row-selected-icon {
-      display: flex;
-    }
+      #left-header-container {
+        float: left;
+        top: 0px;
+      }
 
-    .row-select > .row-unselected-icon {
-      display: flex;
-      color: rgba(255, 0, 0, 0.2);
-    }
+      #right-header-view {
+        display: inline-block;
+        white-space: nowrap;
+        margin-left: 0px;
+        margin-right: 0px;
+        overflow: hidden;
+        width: 0px;
+      }
 
-    .hci-grid-row.selected .row-select .row-unselected-icon {
-      display: none;
-    }
+      #right-header-container {
+        display: inline;
+        position: relative;
+      }
 
-    .empty-content {
-      position: absolute;
-      width: 100%;
-    }
-    
-    .empty-content-text {
-      margin-left: auto;
-      margin-right: auto;
-      margin-top: auto;
-      margin-bottom: auto;
-      font-size: 72px;
-      color: lightgrey;
-    }
- 
-    #new-row-options {
-      display: none;
-      position: absolute;
-      z-index: 1;
-      background-color: rgba(0, 0, 0, 0.2);
-      border-bottom-right-radius: 0.5rem;
-    }
+      #grid-content {
+        display: inline-block;
+        position: absolute;
+        margin-top: 0px;
+      }
 
-    .adding-new-row #new-row-options {
-      display: flex;
-    }
-    
-    .mr-auto {
-      margin-right: auto;
-    }
-    
-    .ml-auto {
-      margin-left: auto;
-    }
-    
-    .m-1 {
-      margin: 0.25rem;
-    }
-    
-    .ml-3 {
-      margin-left: 1rem;
-    }
-    
-    .ml-1 {
-      margin-left: 0.25rem;
-    }
-    
-    .mr-1 {
-      margin-right: 0.25rem;
-    }
+      #left-view {
+        float: left;
+        overflow: hidden;
+        height: 250px;
+      }
 
-    .mr-3 {
-      margin-right: 1rem;
-    }
-        
-    ::ng-deep .mat-menu-panel.menu-lg {
-      max-width: none;
-    }
-  `]
+      #left-container {
+        white-space: nowrap;
+        top: 0px;
+        position: relative;
+      }
+
+      #right-view {
+        position: absolute;
+        margin-left: 0px;
+        width: 0px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: 250px;
+      }
+
+      #right-view.hidden-x {
+        overflow-x: hidden;
+      }
+
+      #right-container {
+        white-space: nowrap;
+      }
+
+      .grid-footer {
+        display: flex;
+        border-top: none;
+        padding: 0.25rem;
+        align-items: center;
+      }
+
+      #pageSize {
+        border: none;
+      }
+
+      #hci-grid-loading {
+        display: none;
+        position: absolute;
+        z-index: 9999;
+      }
+
+      #hci-grid-loading.show {
+        display: flex;
+      }
+
+      #hci-grid-busy {
+        display: none;
+        position: absolute;
+        z-index: 9999;
+      }
+
+      #hci-grid-busy.show {
+        display: flex;
+      }
+
+      .busy-default {
+        background-color: rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-grow: 1;
+      }
+
+      .busy-default-icon {
+        color: #666666;
+      }
+
+      .row-select > .row-selected-icon {
+        display: none;
+        color: green;
+      }
+
+      .hci-grid-row.selected .row-select .row-selected-icon {
+        display: flex;
+      }
+
+      .row-select > .row-unselected-icon {
+        display: flex;
+        color: rgba(255, 0, 0, 0.2);
+      }
+
+      .hci-grid-row.selected .row-select .row-unselected-icon {
+        display: none;
+      }
+
+      .empty-content {
+        position: absolute;
+        width: 100%;
+      }
+
+      .empty-content-text {
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: auto;
+        margin-bottom: auto;
+        font-size: 72px;
+        color: lightgrey;
+      }
+
+      #new-row-options {
+        display: none;
+        position: absolute;
+        z-index: 1;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-bottom-right-radius: 0.5rem;
+      }
+
+      .adding-new-row #new-row-options {
+        display: flex;
+      }
+
+      .mr-auto {
+        margin-right: auto;
+      }
+
+      .ml-auto {
+        margin-left: auto;
+      }
+
+      .m-1 {
+        margin: 0.25rem;
+      }
+
+      .ml-3 {
+        margin-left: 1rem;
+      }
+
+      .ml-1 {
+        margin-left: 0.25rem;
+      }
+
+      .mr-1 {
+        margin-right: 0.25rem;
+      }
+
+      .mr-3 {
+        margin-right: 1rem;
+      }
+
+      ::ng-deep .mat-menu-panel.menu-lg {
+        max-width: none;
+      }
+    `]
 })
 export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
@@ -518,7 +506,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   @ViewChild("focuser1", {static: true}) focuser1: ElementRef;
   @ViewChild("focuser2", {static: true}) focuser2: ElementRef;
   @ViewChild("rightRowContainer", {static: true}) rightRowContainer: ElementRef;
-  @ViewChild("iframeSensor", {static: true}) iframeSensor: ElementRef;
 
   @Input("data") boundData: Object[];
   @Input("dataCall") onExternalDataCall: (externalInfo: HciGridDto) => Observable<HciDataDto>;
@@ -624,9 +611,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   private mouseUpListeners: EventListener[] = [];
   private mouseOverListeners: EventListener[] = [];
   private mouseOutListeners: EventListener[] = [];
-
-  private iFrameWidth: number[] = [0, 0];
-  private iFrameHeight: number[] = [0, 0];
 
   private renderDelay: boolean = false;
   private updateSelectedRowsTimeout: any;
@@ -780,34 +764,6 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     this.gridService.updateConfig(this.inputConfig);
 
     this.gridService.setGridElement(this.gridContainer.nativeElement);
-
-    (<HTMLIFrameElement>this.iframeSensor.nativeElement).contentWindow.addEventListener("resize", () => {
-      this.event = RESIZE;
-
-      let iw: number = this.iframeSensor.nativeElement.offsetWidth;
-      let ih: number = this.iframeSensor.nativeElement.offsetHeight;
-
-      //If not already renderingCellsAndData... Don't want to recursively change.
-      //if (! this.calculatingSize &&
-      if    ((iw !== this.iFrameWidth[0] && Math.abs(this.iFrameWidth[1] - iw) > 2)
-          || (this.autoCalcPageSize && ih !== this.iFrameHeight[0] && Math.abs(this.iFrameHeight[1] - ih))) {
-        
-        if (this.resizeTimer) {
-          clearTimeout(this.resizeTimer);
-        }
-        this.resizeTimer = setTimeout(() => {
-          this.renderCellsAndData();
-        }, 50);
-      }
-      if (iw !== this.iFrameWidth[1]) {
-        this.iFrameWidth[0] = this.iFrameWidth[1];
-        this.iFrameWidth[1] = iw;
-      }
-      if (ih !== this.iFrameHeight[1]) {
-        this.iFrameHeight[0] = this.iFrameHeight[1];
-        this.iFrameHeight[1] = ih;
-      }
-    });
 
     /* Update the pageInfo from the proper one in the gridService. */
     this.paging = this.gridService.paging;
@@ -1105,11 +1061,11 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
             return el.style.display === "none" && i < 10;
           }))
           .subscribe(
-            (value) => {},
-            (error) => {},
-            () => {
-              this.renderCellsAndData();
-            }
+              (value) => {},
+              (error) => {},
+              () => {
+                this.renderCellsAndData();
+              }
           );
     } else if (delay) {
       this.doRenderSubscription = interval(delay)
@@ -1121,7 +1077,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       this.renderCellsAndData();
     }
   }
-  
+
   /**
    * Handled for resize event.
    *
@@ -1183,7 +1139,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       }
     }
   }
-  
+
 
   /**
    * Handled for mouseOver event.
@@ -1599,7 +1555,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     if (this.newRowPostCallFinally) {
       this.inputConfig.newRowPostCallFinally = this.newRowPostCallFinally;
     }
-    
+
     //If auto, set page size to initial size. Defaults to 3, then is updated when calculated.
     if (this.autoCalcPageSize) {
       this.inputConfig.pageSize = this.calculatedPageSize;
@@ -1620,11 +1576,11 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
   /**
    * Calculate the sizes of the containers and column header sizes.  The basic principle is that the grid always fills
-   * the parent's size.  The iframe inside listens to changes to that size to prompt re-rendering of the containers.
+   * the parent's size.
    */
   private updateGridContainerHeightAndColumnSizes(): void {
     this.gridService.setNVisibleRows();
-    
+
     let nVisibleRows: number = this.gridService.getNVisibleRows();
     var pageSize: number = this.paging.pageSize;
 
@@ -1645,24 +1601,41 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     try {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
-    
+
+      console.log("CALCULATE SIZES");
+
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+    var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - titleHeight - headerHeight - footerHeight;
+    console.log(availableHeight);
+    
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
-      var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight;
       pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
+      console.log(pageSize);
       nVisibleRows = pageSize;
     }
     
+    console.log("Visible Rows:");
+    console.log(nVisibleRows);
+
     contentViewHeight = 0;
     if (this.height > 0) {
       contentViewHeight = this.height - titleHeight - headerHeight - footerHeight;
     } else {
       if (nVisibleRows <= 0) {
-        contentViewHeight = Math.max(this.rowHeight * 3, this.gridData.length * this.rowHeight);
+        contentViewHeight = Math.max(availableHeight, this.rowHeight * 3, this.gridData.length * this.rowHeight);
       } else {
-        contentViewHeight = Math.max(this.rowHeight * 3, nVisibleRows * this.rowHeight);
+        contentViewHeight = Math.max(availableHeight, this.rowHeight * 3, nVisibleRows * this.rowHeight);
       }
     }
+    
+    console.log("ContentViewHeight:"); console.log(contentViewHeight);
+    
+    if (this.autoCalcPageSize) {
+      //Smaller of content height or available height (produce scrolling if too large)
+      contentViewHeight = Math.min(contentViewHeight, availableHeight);
+    }
+
+    console.log("Min ContentViewHeight:"); console.log(contentViewHeight);
 
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#main-content"), "height", (headerHeight + contentViewHeight) + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#left-view"), "height", contentViewHeight + "px");
@@ -1681,7 +1654,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
     if (nVisibleRows > 0
         && ((pageSize > 0 && nVisibleRows < pageSize)
-        || (pageSize < 0 && nVisibleRows < this.gridData.length))) {
+            || (pageSize < 0 && nVisibleRows < this.gridData.length))) {
       insideGridWidth = gridWidth - 17;
     }
 
@@ -1769,10 +1742,10 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     let rightViewWidth: number = Math.floor(gridWidth - Math.max(fixedWidth, fixedMinWidth));
 
     e = this.gridContainer.nativeElement.querySelector("#title-bar");
-    this.renderer.setStyle(e, "width", (gridWidth + 1) + "px");
+    this.renderer.setStyle(e, "width", (gridWidth) + "px");
 
     e = this.gridContainer.nativeElement.querySelector("#grid-footer");
-    this.renderer.setStyle(e, "width", (gridWidth + 1) + "px");
+    this.renderer.setStyle(e, "width", (gridWidth) + "px");
 
     e = this.gridContainer.nativeElement.querySelector("#left-view");
     this.renderer.setStyle(e, "width", fixedWidth + "px");
@@ -1789,12 +1762,12 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     this.renderer.setStyle(e, "width", gridWidth + "px");
     e = this.gridContainer.nativeElement.querySelector("#right-header-view");
     this.renderer.setStyle(e, "margin-left", Math.max(fixedWidth, fixedMinWidth) + "px");
-    this.renderer.setStyle(e, "width", rightViewWidth + "px");
+    this.renderer.setStyle(e, "width", (rightViewWidth - 1) + "px");
 
     e = this.gridContainer.nativeElement.querySelector("#right-view");
     this.renderer.setStyle(e, "margin-left", Math.max(fixedWidth, fixedMinWidth) + "px");
-    this.renderer.setStyle(e, "width", rightViewWidth + "px");
-    if (nVisibleRows === pageSize && pageSize !== -1) {
+    this.renderer.setStyle(e, "width", (rightViewWidth - 1) + "px");
+    if (! this.autoCalcPageSize && nVisibleRows === pageSize && pageSize !== -1) {
       this.renderer.setStyle(e, "overflow-y", "hidden");
     } else {
       this.renderer.setStyle(e, "overflow-y", "auto");
@@ -1806,15 +1779,21 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
 
       if (!this.height) {
 
-        //If auto calc, we may need less rows to accomodate scrollbar
-        //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
-        if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
+        if (this.autoCalcPageSize) {
           var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - headerHeight - footerHeight - 17;
-          //Regardless of calculated size, showing a minimum of 3 rows
-          pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
-          nVisibleRows = pageSize;
+  
+          //We may need less rows to accomodate scrollbar
+          //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
+          if (this.paging.pageSize === this.calculatedPageSize) {
+            
+            //Regardless of calculated size, showing a minimum of 3 rows
+            pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
+            nVisibleRows = pageSize;
+  
+            contentViewHeight = nVisibleRows * this.rowHeight;
+          }
           
-          contentViewHeight = nVisibleRows * this.rowHeight;
+          contentViewHeight = Math.min(contentViewHeight, availableHeight);
         }
 
         contentViewHeight += 17;
@@ -1829,14 +1808,14 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     } else {
       this.renderer.addClass(e, "hidden-x");
     }
-    
+
     //This will trigger an update for the data, but should not trigger a re-calculation of sizing
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
 
       //Updated to new calculated page size
       this.calculatedPageSize = pageSize;
-      
+
       if (! this.getGridService().paging.pageSize || this.getGridService().paging.pageSize  !== pageSize) {
         this.gridService.setPageSize(pageSize);
       }
@@ -1846,6 +1825,10 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
   private setGridData(gridData: Row[]): void {
     this.gridData = gridData;
     this.renderCellsAndData();
+  }
+  
+  public windowResized() {
+      this.renderCellsAndData();
   }
 
   /**

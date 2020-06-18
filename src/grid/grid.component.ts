@@ -1602,20 +1602,14 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       footerHeight = this.gridContainer.nativeElement.querySelector("#grid-footer").offsetHeight;
     } catch (error) {}
 
-      console.log("CALCULATE SIZES");
 
     //Auto is only used if AUTO is selected in page size dropdown (paging.pageSize === calculatedPageSize)
     var availableHeight = this.gridContainer.nativeElement.parentNode.offsetHeight - titleHeight - headerHeight - footerHeight;
-    console.log(availableHeight);
     
     if (this.autoCalcPageSize && this.paging.pageSize === this.calculatedPageSize) {
       pageSize = Math.max(3, Math.floor(availableHeight / this.rowHeight));
-      console.log(pageSize);
       nVisibleRows = pageSize;
     }
-    
-    console.log("Visible Rows:");
-    console.log(nVisibleRows);
 
     contentViewHeight = 0;
     if (this.height > 0) {
@@ -1628,14 +1622,10 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
       }
     }
     
-    console.log("ContentViewHeight:"); console.log(contentViewHeight);
-    
     if (this.autoCalcPageSize) {
       //Smaller of content height or available height (produce scrolling if too large)
       contentViewHeight = Math.min(contentViewHeight, availableHeight);
     }
-
-    console.log("Min ContentViewHeight:"); console.log(contentViewHeight);
 
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#main-content"), "height", (headerHeight + contentViewHeight) + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#left-view"), "height", contentViewHeight + "px");

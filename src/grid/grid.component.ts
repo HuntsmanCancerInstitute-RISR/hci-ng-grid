@@ -1630,7 +1630,7 @@ export class GridComponent implements OnChanges, AfterViewInit, OnDestroy {
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#main-content"), "height", (headerHeight + contentViewHeight) + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#left-view"), "height", contentViewHeight + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#right-view"), "height", contentViewHeight + "px");
-    this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#right-container"), "min-height", contentViewHeight + "px");
+    //this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#right-container"), "min-height", contentViewHeight + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector("#hci-grid-busy"), "height", (headerHeight + contentViewHeight) + "px");
     this.renderer.setStyle(this.gridContainer.nativeElement.querySelector(".empty-content"), "height", (headerHeight + contentViewHeight) + "px");
     gridHeight = this.gridContainer.nativeElement.offsetHeight;

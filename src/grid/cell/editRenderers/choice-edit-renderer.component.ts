@@ -6,14 +6,15 @@ import {Point} from "../../utils/point";
 @Component({
   selector: "hci-grid-choice-edit",
   template: `
-        <choice-select [options]="column.choices" 
-                    [idKey]="column.choiceValue"
-                    [labelKey]="column.choiceDisplay"
-                    (selectChange)="onClick($event)"
-        ></choice-select>
+    <choice-select [options]="column.choices"
+                   [idKey]="column.choiceValue"
+                   [labelKey]="column.choiceDisplay"
+                   (selectChange)="onClick($event)"
+                   (keydown)="onKeyDown($event)"
+    ></choice-select>
   `,
   styles: [ `
-      
+
     .edit-renderer, .edit-renderer:focus {
       overflow-x: hidden;
       border: none;

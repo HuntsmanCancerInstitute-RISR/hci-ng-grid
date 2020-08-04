@@ -21,7 +21,7 @@ import { untilDestroyed } from "ngx-take-until-destroy";
 @Component({
   selector: "choice-select",
   template: `
-    <div class="dropdown">
+    <div (keydown)="onKeyDown($event)" class="dropdown">
       <div class="select-trigger"
            (click)="open(dropdown, origin)" #origin>
 
@@ -145,6 +145,7 @@ export class ChoiceSelectComponent implements OnInit, OnDestroy {
   @Input() optionTpl: TemplateRef<any>;
   @Output() selectChange = new EventEmitter();
   @Output() closed = new EventEmitter();
+  @Output() keydown = new EventEmitter();
 
   public visibleOptions = 4;
   searchControl = new FormControl();
@@ -240,6 +241,9 @@ export class ChoiceSelectComponent implements OnInit, OnDestroy {
     this.searchControl.patchValue("");
     this.view = null;
     this.popperRef = null;
+  }
+  onKeyDown(event: KeyboardEvent){
+    this.keydown.emit(event);
   }
 
 

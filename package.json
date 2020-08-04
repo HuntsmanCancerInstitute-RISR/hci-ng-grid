@@ -44,7 +44,8 @@
   "dependencies": {
     "hci-ng-grid-dto": "1.0.x",
     "moment": ">=2.19.3",
-    "rxjs-compat": "^6.5.3"
+    "rxjs-compat": "^6.5.3",
+    "popper.js": "^1.15.0"
   },
   "devDependencies": {
     "@angular/animations": ">=8.0.0 <10.0.0",

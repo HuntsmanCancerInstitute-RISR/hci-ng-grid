@@ -6,18 +6,11 @@ import {Point} from "../../utils/point";
 @Component({
   selector: "hci-grid-choice-edit",
   template: `
-    <select #select
-            [ngModel]="value"
-            (ngModelChange)="onModelChange($event)"
-            (click)="onClick($event)"
-            (keydown)="onKeyDown($event)"
-            class="edit-renderer">
-      <option *ngFor="let choice of column.choices"
-              [ngValue]="choice[column.choiceValue]"
-              [selected]="choice[column.choiceValue] === value">
-        {{ choice[column.choiceDisplay] }}
-      </option>
-    </select>
+        <choice-select [options]="column.choices" 
+                    [idKey]="column.choiceValue"
+                    [labelKey]="column.choiceDisplay"
+                    (selectChange)="onClick($event)"
+        ></choice-select>
   `,
   styles: [ `
       
@@ -35,7 +28,6 @@ export class ChoiceEditRenderer extends CellEditRenderer {
   @ViewChild("select", {static: true}) select: ElementRef;
 
   ngAfterViewInit() {
-    this.select.nativeElement.focus();
   }
 
   updateLocation() {
@@ -49,10 +41,7 @@ export class ChoiceEditRenderer extends CellEditRenderer {
       console.debug("ChoiceEditRenderer.onClick");
     }
 
-    this.saveData();
-
-    event.stopPropagation();
-    event.preventDefault();
+    this.saveData(event);
   }
 
   onKeyDown(event: KeyboardEvent) {

@@ -3,7 +3,7 @@
  */
 import {ANALYZE_FOR_ENTRY_COMPONENTS, ModuleWithProviders, NgModule} from "@angular/core";
 import {CommonModule} from "@angular/common";
-import {FormsModule} from "@angular/forms";
+import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 import {MatMenuModule} from "@angular/material/menu";
 
 import {GridComponent} from "./grid.component";
@@ -22,13 +22,18 @@ import {ConfigMenuComponent} from "./config/config-menu.component";
 import {GridGlobalService} from "./services/grid-global.service";
 import {ConfigMultiChoiceComponent} from "./config/config-multi-choice.component";
 import {AngularResizedEventModule} from 'angular-resize-event';
+import {ChoiceSelectComponent} from "./cell/editRenderers/choice-select.component";
+import {ScrollingModule} from "@angular/cdk/scrolling";
+import {ChoiceSelectFocusDirective} from "./cell/editRenderers/choice-select-focus.directive";
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     MatMenuModule,
-    AngularResizedEventModule
+    AngularResizedEventModule,
+    ScrollingModule,
+    ReactiveFormsModule
   ],
   declarations: [
     GridComponent,
@@ -44,7 +49,9 @@ import {AngularResizedEventModule} from 'angular-resize-event';
     CompareFilterRenderer,
     BigTextPopup,
     ConfigMenuComponent,
-    ConfigMultiChoiceComponent
+    ConfigMultiChoiceComponent,
+    ChoiceSelectComponent,
+    ChoiceSelectFocusDirective
   ],
   entryComponents: [
     TextEditRenderer,

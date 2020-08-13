@@ -28,6 +28,7 @@ export class GridService implements OnDestroy {
   static defaultConfig: any = {
     theme: "spreadsheet",
     columnHeaders: true,
+    columnHeaderTooltips: true,
     groupBy: [],
     groupByCollapsed: true,
     externalGrouping: false,
@@ -47,6 +48,7 @@ export class GridService implements OnDestroy {
 
   id: string;
   columnHeaders: boolean;
+  columnHeaderTooltips: boolean;
   columns: Column[];
   fixedColumns: string[];
   groupBy: string[];
@@ -185,6 +187,9 @@ export class GridService implements OnDestroy {
         columnsChanged = true;
       }
       this.columnHeaders = config.columnHeaders;
+    }
+    if (config.columnHeaderTooltips !== undefined) {
+      this.columnHeaderTooltips = config.columnHeaderTooltips;
     }
     if (config.fixedColumns) {
       if (!this.fixedColumns) {

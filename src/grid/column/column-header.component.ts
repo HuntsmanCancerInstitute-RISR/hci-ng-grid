@@ -184,8 +184,10 @@ export class ColumnHeaderComponent implements OnDestroy {
   }
 
   onMouseOver(event: MouseEvent): void {
-    if (Math.floor(this.headerText.offsetWidth) !== Math.floor(this.hiddenHeaderText.offsetWidth)) {
-      this.showPopup = true;
+    if (this.gridService.columnHeaderTooltips !== false) {
+      if (Math.floor(this.headerText.offsetWidth) !== Math.floor(this.hiddenHeaderText.offsetWidth)) {
+        this.showPopup = true;
+      }
     }
 
     if (this.showPopup) {

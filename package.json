@@ -91,7 +91,7 @@
     "inline-source-map": "^0.6.2",
     "istanbul-instrumenter-loader": "3.0.x",
     "jasmine-core": "^2.6.2",
-    "karma": "^1.7.0",
+    "karma": "^6.3.14",
     "karma-chrome-launcher": "^2.1.1",
     "karma-coverage": "^1.1.1",
     "karma-jasmine": "^1.1.0",
